@@ -10,6 +10,9 @@ import { Download, FileText, Search } from "lucide-react"
 import { jsPDF } from "jspdf"
 import "jspdf-autotable"
 import { serialize } from 'next-mdx-remote/serialize'
+import { useReportStore } from "@/store/reportStore"
+import { useRouter } from "next/navigation"
+
 
 interface Report {
   id: string
@@ -25,11 +28,13 @@ export function ReportsList() {
   const [reports, setReports] = useState<Report[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
+  const router = useRouter()
+  const { setSelectedReport } = useReportStore()
 
   const fetchReports = async () => {
     setLoading(true)
     try {
-      const res = await fetch("http://localhost:8000/logs/all/50", {
+      const res = await fetch("http://104.225.221.108:8080/logs/all/50", {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -49,15 +54,15 @@ export function ReportsList() {
   useEffect(() => {
     fetchReports()
   }, [])
-  
+
   // Parse markdown using MDX serializer
   const parseMarkdownWithMDX = async (markdown: string) => {
     if (!markdown) return { title: "", mdxSource: null };
-    
+
     // Extract title (assuming first line is title)
     const lines = markdown.split(/\r?\n/);
     const title = lines[0] || "Report";
-    
+
     try {
       // Serialize the markdown content with MDX
       const mdxSource = await serialize(markdown, {
@@ -67,7 +72,7 @@ export function ReportsList() {
           rehypePlugins: [],
         },
       });
-      
+
       return { title, mdxSource };
     } catch (error) {
       console.error("Error parsing markdown with MDX:", error);
@@ -78,78 +83,78 @@ export function ReportsList() {
   const generatePDF = async (report: Report) => {
     // Initialize PDF document
     const doc = new jsPDF();
-    
+
     // Parse the markdown using MDX
     const { title } = await parseMarkdownWithMDX(report.report_generated);
-    
+
     // Extract plain text content for PDF
     // For PDF generation, we'll still need to convert MDX to plain text/structure
     const content = report.report_generated || "";
     const lines = content.split(/\r?\n/);
     const reportTitle = lines[0] || "Report";
-    
+
     // Add header with caller info
     doc.setFillColor(41, 98, 255); // Blue header
     doc.rect(0, 0, doc.internal.pageSize.getWidth(), 40, 'F');
-    
+
     // Add title
     doc.setTextColor(255, 255, 255); // White text
     doc.setFont("helvetica", "bold");
     doc.setFontSize(18);
     doc.text(reportTitle, 20, 20);
-    
+
     // Add caller info
     doc.setFontSize(12);
     doc.text(`Caller: ${report.caller_name || "Unknown"}`, 20, 30);
-    
+
     // Reset text color for main content
     doc.setTextColor(0, 0, 0);
-    
+
     // Parse content sections using regex patterns
     let yPosition = 50; // Start position after header
-    
+
     for (let i = 1; i < lines.length; i++) {
       const line = lines[i].trim();
-      
+
       // Skip empty lines
       if (!line) continue;
-      
+
       // Check if we need a new page
       if (yPosition > doc.internal.pageSize.getHeight() - 20) {
         doc.addPage();
         yPosition = 20;
       }
-      
+
       // Check for headings (# Heading)
       if (line.match(/^#{1,3}\s/)) {
         // Add space before new section
         yPosition += 10;
-        
+
         const headingMatch = line.match(/^(#+)/);
         const headingLevel = headingMatch ? headingMatch[0].length : 1;
         const headingText = line.replace(/^#+\s+/, '');
-        
+
         // Set font size based on heading level
         const fontSize = 18 - (headingLevel * 2);
-        
+
         doc.setFont("helvetica", "bold");
         doc.setFontSize(fontSize);
         doc.setTextColor(41, 98, 255); // Blue for headings
         doc.text(headingText, 20, yPosition);
-        
+
         yPosition += 8;
         continue;
       }
-      
+
       // Regular text content
       doc.setFont("helvetica", "normal");
       doc.setFontSize(12);
       doc.setTextColor(0, 0, 0); // Black for content
-      
+
       // Handle bullet points
       let textLine = line;
       let indent = 0;
-      
+
       if (line.match(/^\s*[-*]\s/)) {
         textLine = `• ${line.replace(/^\s*[-*]\s/, '')}`;
         indent = 5;
@@ -160,14 +165,14 @@ export function ReportsList() {
         textLine = `${isChecked ? '☑' : '☐'} ${line.replace(/^\s*- \[[ x]\]\s/, '')}`;
         indent = 5;
       }
-      
+
       // Split long text to fit page width
       const textLines = doc.splitTextToSize(textLine, 170 - indent);
-      
+
       doc.text(textLines, 20 + indent, yPosition);
       yPosition += textLines.length * 7; // Add space based on number of lines
     }
-    
+
     // Add footer - fix for the TypeScript error
     const pageCount = (doc as any).internal.pages.length - 1;
     for (let i = 1; i <= pageCount; i++) {
@@ -175,12 +180,12 @@ export function ReportsList() {
       doc.setFontSize(10);
       doc.setTextColor(150, 150, 150); // Gray for footer
       doc.text(`Page ${i} of ${pageCount}`, doc.internal.pageSize.getWidth() / 2, doc.internal.pageSize.getHeight() - 10, { align: 'center' });
-      
+
       // Add timestamp
       const timestamp = new Date().toLocaleString();
       doc.text(`Generated: ${timestamp}`, 20, doc.internal.pageSize.getHeight() - 10);
     }
-    
+
     // Download the PDF
     const fileName = `${report.caller_name || 'report'}-${report.id.slice(0, 8)}.pdf`;
     doc.save(fileName);
@@ -195,7 +200,7 @@ export function ReportsList() {
   // Function to determine sentiment color
   const getSentimentColor = (sentiment: string) => {
     if (!sentiment) return "gray";
-    
+
     const lowerSentiment = sentiment.toLowerCase();
     if (lowerSentiment.includes("happy") || lowerSentiment.includes("positive")) {
       return "green";
@@ -260,35 +265,37 @@ export function ReportsList() {
             ) : (
               filteredReports.map((report) => {
                 const sentimentColor = getSentimentColor(report.caller_sentiment);
-                
+
                 return (
                   <TableRow key={report.id}>
                     <TableCell className="font-medium">
-                      <Link href={`/reports/${report.id}`} className="flex items-center hover:underline">
-                        <FileText className="mr-2 h-4 w-4" />
-                        {report.caller_name || "Unknown Caller"}
-                      </Link>
+                      <Button onClick={() => {
+                        setSelectedReport(report)
+                        router.push(`/reports/${report.id}`)
+                      }}>
+                        {report.caller_name}
+                      </Button>
+
                     </TableCell>
                     <TableCell>{report.request_type || "N/A"}</TableCell>
                     <TableCell>{report.date || "N/A"}</TableCell>
                     <TableCell>
-                      <span 
-                        className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                          sentimentColor === "green" 
+                      <span
+                        className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${sentimentColor === "green"
                             ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100"
                             : sentimentColor === "red"
-                            ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100"
-                            : sentimentColor === "blue"
-                            ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100"
-                            : "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-100"
-                        }`}
+                              ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100"
+                              : sentimentColor === "blue"
+                                ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100"
+                                : "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-100"
+                          }`}
                       >
                         {report.caller_sentiment || "Unknown"}
                       </span>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button 
-                        variant="ghost" 
+                      <Button
+                        variant="ghost"
                         size="icon"
                         onClick={() => generatePDF(report)}
                         title="Download PDF Report"

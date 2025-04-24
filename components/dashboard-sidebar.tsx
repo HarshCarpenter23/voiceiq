@@ -38,7 +38,7 @@ export function DashboardSidebar() {
     {
       title: "Analytics",
       icon: BarChart,
-      href: "/analytics",
+      href: "http://104.225.221.108:3000/",
     },
     {
       title: "Settings",

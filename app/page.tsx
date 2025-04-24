@@ -2,128 +2,78 @@ import { DashboardHeader } from "@/components/dashboard-header"
 import { DashboardShell } from "@/components/dashboard-shell"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Overview } from "@/components/overview"
-import { RecentUploads } from "@/components/recent-uploads"
 import Link from "next/link"
-import { Upload } from "lucide-react"
+import { Upload, Mic, Languages, UserCheck, Globe } from "lucide-react"
 
 export default function DashboardPage() {
   return (
     <DashboardShell>
-      <DashboardHeader heading="Dashboard" text="Monitor your audio analysis and reports.">
+      <DashboardHeader
+        heading="AI-Powered Transcription & Reports"
+        text="Seamlessly transcribe, analyze, and interact with your meetings."
+      >
         <Button asChild>
           <Link href="/upload">
             <Upload className="mr-2 h-4 w-4" />
-            Upload Audio
+            Get Started
           </Link>
         </Button>
       </DashboardHeader>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 w-full">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Uploads</CardTitle>
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              className="h-4 w-4 text-muted-foreground"
-            >
-              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-              <circle cx="9" cy="7" r="4" />
-              <path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
-            </svg>
+
+      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4 py-6">
+        <Card className="transition-all duration-300 hover:shadow-xl rounded-2xl">
+          <CardHeader className="flex flex-col gap-2 items-start">
+            <Mic className="h-6 w-6 text-primary" />
+            <CardTitle className="text-base">High Quality Transcription</CardTitle>
+            <CardDescription className="text-sm text-muted-foreground">
+              Achieve up to 95% accuracy with our industry-leading AI transcription engine.
+            </CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">24</div>
-            {/* <p className="text-xs text-muted-foreground">+12% from last month</p> */}
-          </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Reports Generated</CardTitle>
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              className="h-4 w-4 text-muted-foreground"
-            >
-              <rect width="20" height="14" x="2" y="5" rx="2" />
-              <path d="M2 10h20" />
-            </svg>
+
+        <Card className="transition-all duration-300 hover:shadow-xl rounded-2xl">
+          <CardHeader className="flex flex-col gap-2 items-start">
+            <Languages className="h-6 w-6 text-primary" />
+            <CardTitle className="text-base">100+ Languages Supported</CardTitle>
+            <CardDescription className="text-sm text-muted-foreground">
+              Transcribe in English, Spanish, French, Hindi, and many more with ease.
+            </CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">18</div>
-            {/* <p className="text-xs text-muted-foreground">+5% from last month</p> */}
-          </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Processing Time</CardTitle>
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              className="h-4 w-4 text-muted-foreground"
-            >
-              <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
-            </svg>
+
+        <Card className="transition-all duration-300 hover:shadow-xl rounded-2xl">
+          <CardHeader className="flex flex-col gap-2 items-start">
+            <UserCheck className="h-6 w-6 text-primary" />
+            <CardTitle className="text-base">Speaker Recognition</CardTitle>
+            <CardDescription className="text-sm text-muted-foreground">
+              Automatically identify and label different speakers in your audio.
+            </CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">1.2m</div>
-            {/* <p className="text-xs text-muted-foreground">-8% from last month</p> */}
-          </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Users</CardTitle>
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              className="h-4 w-4 text-muted-foreground"
-            >
-              <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-            </svg>
+
+        <Card className="transition-all duration-300 hover:shadow-xl rounded-2xl">
+          <CardHeader className="flex flex-col gap-2 items-start">
+            <Globe className="h-6 w-6 text-primary" />
+            <CardTitle className="text-base">Auto Language Detection</CardTitle>
+            <CardDescription className="text-sm text-muted-foreground">
+              Detect and switch between languages automatically in multilingual meetings.
+            </CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">8</div>
-            {/* <p className="text-xs text-muted-foreground">+12% from last month</p> */}
-          </CardContent>
         </Card>
       </div>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7 w-full">
-        <Card className="col-span-4">
+
+      <div className="py-4">
+        <Card className="rounded-2xl">
           <CardHeader>
-            <CardTitle>Overview</CardTitle>
-            <CardDescription>Audio analysis and report generation over time.</CardDescription>
+            <CardTitle>How It Works</CardTitle>
+            <CardDescription>
+              Upload your audio, view detailed reports, and chat with your transcript.
+            </CardDescription>
           </CardHeader>
-          <CardContent className="pl-2">
-            <Overview />
-          </CardContent>
-        </Card>
-        <Card className="col-span-3">
-          <CardHeader>
-            <CardTitle>Recent Uploads</CardTitle>
-            <CardDescription>Your most recent audio file uploads.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <RecentUploads />
+          <CardContent className="text-muted-foreground text-sm">
+            Simply go to the <strong>Upload</strong> section, add your audio file, and let our AI do the rest.
+            Once processed, head to the <strong>Reports</strong> section to explore insights, and interact
+            with the data using our <strong>Chat with Report</strong> feature.
           </CardContent>
         </Card>
       </div>
