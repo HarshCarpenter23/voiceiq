@@ -1,8 +1,9 @@
 "use client"
 
 import Link from "next/link"
+import { signOut, useSession } from "next-auth/react"
 import { usePathname } from "next/navigation"
-import { BarChart, FileText, Home, Settings, Upload } from "lucide-react"
+import { BarChart, FileText, Home, Settings, Upload, LogOut } from "lucide-react"
 import {
   Sidebar,
   SidebarContent,
@@ -15,9 +16,11 @@ import {
 } from "@/components/ui/sidebar"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { ModeToggle } from "@/components/mode-toggle"
+import { Button } from "@/components/ui/button"
 
 export function DashboardSidebar() {
   const pathname = usePathname()
+  const { data: session } = useSession()
 
   const routes = [
     {
@@ -39,11 +42,6 @@ export function DashboardSidebar() {
       title: "Analytics",
       icon: BarChart,
       href: "http://104.225.221.108:3000/",
-    },
-    {
-      title: "Settings",
-      icon: Settings,
-      href: "/settings",
     },
   ]
 
@@ -88,15 +86,23 @@ export function DashboardSidebar() {
         <div className="flex items-center justify-between p-4">
           <div className="flex items-center gap-2">
             <Avatar className="h-8 w-8">
-              <AvatarImage src="/placeholder.svg" alt="User" />
-              <AvatarFallback>JD</AvatarFallback>
+              <AvatarImage src={session?.user?.image || "/placeholder.svg"} alt="User" />
+              <AvatarFallback>
+                {session?.user?.name?.slice(0, 2).toUpperCase() || "??"}
+              </AvatarFallback>
             </Avatar>
             <div>
-              <p className="text-sm font-medium">John Doe</p>
-              <p className="text-xs text-muted-foreground">Admin</p>
+              <p className="text-sm font-medium">{session?.user?.name || "Guest"}</p>
+              <p className="text-xs text-muted-foreground">Logged In</p>
             </div>
           </div>
           <ModeToggle />
+        </div>
+        <div className="p-4 pt-0">
+          <Button onClick={() => signOut({ callbackUrl: "/login" })} variant="outline" className="w-full">
+            <LogOut className="w-4 h-4 mr-2" />
+            Logout
+          </Button>
         </div>
       </SidebarFooter>
       <SidebarTrigger />

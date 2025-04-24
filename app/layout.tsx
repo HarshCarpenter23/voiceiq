@@ -1,12 +1,13 @@
-import type React from "react"
-import type { Metadata } from "next"
-import { Inter } from "next/font/google"
+// app/layout.tsx
 import "./globals.css"
+import { Inter } from "next/font/google"
+import { Metadata } from "next"
 import { ThemeProvider } from "@/components/theme-provider"
 import { SidebarProvider } from "@/components/ui/sidebar"
-import { DashboardSidebar } from "@/components/dashboard-sidebar"
 import { Toaster } from "@/components/ui/toaster"
 import { ClientOnly } from "@/components/client-only"
+import ClientLayout from "@/components/client-layout"
+import { SessionProviderWrapper } from "@/components/session-provider-wrapper"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -15,24 +16,19 @@ export const metadata: Metadata = {
   description: "Upload audio files and view generated reports",
 }
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode
-}>) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
       <body className={inter.className}>
         <ClientOnly>
-          <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-            <SidebarProvider>
-              <div className="flex h-screen w-[100%]">
-                <DashboardSidebar />
-                <main className="flex-1 overflow-auto w-full">{children}</main>
-              </div>
-              <Toaster />
-            </SidebarProvider>
-          </ThemeProvider>
+          <SessionProviderWrapper>
+            <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+              <SidebarProvider>
+                <ClientLayout>{children}</ClientLayout>
+                <Toaster />
+              </SidebarProvider>
+            </ThemeProvider>
+          </SessionProviderWrapper>
         </ClientOnly>
       </body>
     </html>

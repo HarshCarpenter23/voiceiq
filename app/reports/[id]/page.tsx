@@ -153,10 +153,10 @@ export default function ReportPage({ params }: { params: Promise<{ id: string }>
                 <FileText className="mr-2 h-4 w-4" />
                 Report
               </TabsTrigger>
-              <TabsTrigger value="audio">
+              {/* <TabsTrigger value="audio">
                 <Headphones className="mr-2 h-4 w-4" />
                 Audio
-              </TabsTrigger>
+              </TabsTrigger> */}
             </TabsList>
             <TabsContent value="report" className="mt-0">
               <ReportViewer content={report.report_generated} />
