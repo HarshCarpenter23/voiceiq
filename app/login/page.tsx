@@ -94,7 +94,7 @@ export default function LoginPage() {
                     </div>
 
                     <div className="text-xs text-primary-foreground/70">
-                        © 2025 AppName. All rights reserved.
+                        © 2025 VoiceIQ. All rights reserved.
                     </div>
                 </div>
 
