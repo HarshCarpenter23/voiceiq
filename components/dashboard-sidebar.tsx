@@ -1,9 +1,10 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { signOut, useSession } from "next-auth/react"
 import { usePathname } from "next/navigation"
-import { BarChart, FileText, Home, Settings, Upload, LogOut } from "lucide-react"
+import { BarChart, FileText, Home, Settings, Upload, LogOut, Shield } from "lucide-react"
 import {
   Sidebar,
   SidebarContent,
@@ -17,94 +18,174 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { ModeToggle } from "@/components/mode-toggle"
 import { Button } from "@/components/ui/button"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+
+interface MauthNUserData {
+  name: string
+  claimant: string
+  email: string
+}
 
 export function DashboardSidebar() {
   const pathname = usePathname()
   const { data: session } = useSession()
+  const [mauthNUser, setMauthNUser] = useState<MauthNUserData | null>(null)
+
+  // Check auth status on mount and session changes
+  useEffect(() => {
+    const checkAuthStatus = () => {
+      const mauthNData = localStorage.getItem("mauthNUserData")
+      if (mauthNData) {
+        try {
+          setMauthNUser(JSON.parse(mauthNData))
+        } catch (e) {
+          console.error("Failed to parse MauthN data:", e)
+        }
+      }
+    }
+    checkAuthStatus()
+
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === "mauthNUserData") checkAuthStatus()
+    }
+
+    window.addEventListener('storage', handleStorageChange)
+    return () => window.removeEventListener('storage', handleStorageChange)
+  }, [session])
 
   const routes = [
-    {
-      title: "Dashboard",
-      icon: Home,
-      href: "/",
-    },
-    {
-      title: "Upload",
-      icon: Upload,
-      href: "/upload",
-    },
-    {
-      title: "Reports",
-      icon: FileText,
-      href: "/reports",
-    },
-    {
-      title: "Analytics",
-      icon: BarChart,
-      href: "http://104.225.221.108:3000/",
-    },
+    { title: "Dashboard", icon: Home, href: "/" },
+    { title: "Upload", icon: Upload, href: "/upload" },
+    { title: "Reports", icon: FileText, href: "/reports" },
+    { title: "Analytics", icon: BarChart, href: "http://104.225.221.108:3000/" },
   ]
 
+  const handleLogout = () => {
+    localStorage.removeItem("mauthNUserData")
+    if (session) {
+      signOut({ callbackUrl: "/login" })
+    } else {
+      window.location.href = "/login"
+    }
+  }
+
+  // Helper functions
+  const extractCountry = (claimant: string): string => {
+    const match = claimant.match(/Country Code: ([A-Z]{2})/)
+    return match ? match[1] : "US"
+  }
+
+  const getInitials = (name?: string): string => {
+    if (!name) return "??"
+    return name.split(' ').map(part => part[0]).join('').toUpperCase().slice(0, 2)
+  }
+
+  const truncateName = (name: string, maxLength = 20): string => {
+    return name.length > maxLength ? `${name.substring(0, maxLength)}...` : name
+  }
+
+  // Determine auth state
+  const isMauthNLoggedIn = !!mauthNUser
+  const isSessionLoggedIn = !!session?.user
+  const userName = isMauthNLoggedIn ? mauthNUser.name : session?.user?.name || "Guest"
+  const userEmail = isMauthNLoggedIn ? mauthNUser.email : session?.user?.email
+
   return (
-    <Sidebar>
+    <Sidebar className="w-[250px]">
       <SidebarHeader className="border-b">
         <div className="flex h-14 items-center px-4">
           <Link href="/" className="flex items-center gap-2 font-semibold">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="h-6 w-6"
-            >
-              <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
-              <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-              <line x1="12" x2="12" y1="19" y2="22" />
-            </svg>
+            <svg className="h-6 w-6" /* your logo SVG */ />
             <span className="text-xl">VoiceIQ</span>
           </Link>
         </div>
       </SidebarHeader>
+      
       <SidebarContent>
         <SidebarMenu>
           {routes.map((route) => (
             <SidebarMenuItem key={route.href}>
               <SidebarMenuButton asChild isActive={pathname === route.href}>
-                <Link href={route.href}>
-                  <route.icon className="h-5 w-5" />
-                  <span>{route.title}</span>
+                <Link href={route.href} className="flex items-center gap-2">
+                  <route.icon className="h-5 w-5 flex-shrink-0" />
+                  <span className="truncate">{route.title}</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
           ))}
         </SidebarMenu>
       </SidebarContent>
+
       <SidebarFooter className="border-t">
-        <div className="flex items-center justify-between p-4">
-          <div className="flex items-center gap-2">
-            <Avatar className="h-8 w-8">
-              <AvatarImage src={session?.user?.image || "/placeholder.svg"} alt="User" />
-              <AvatarFallback>
-                {session?.user?.name?.slice(0, 2).toUpperCase() || "??"}
-              </AvatarFallback>
+        <div className="flex items-center justify-between p-4 gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <Avatar className="h-8 w-8 flex-shrink-0">
+              {isMauthNLoggedIn ? (
+                <>
+                  <AvatarImage
+                    src={`https://flagcdn.com/w80/${extractCountry(mauthNUser.claimant).toLowerCase()}.png`}
+                    alt="Country Flag"
+                  />
+                  <AvatarFallback>{getInitials(userName)}</AvatarFallback>
+                </>
+              ) : (
+                <>
+                  <AvatarImage src={session?.user?.image || ""} alt="User" />
+                  <AvatarFallback>{getInitials(userName)}</AvatarFallback>
+                </>
+              )}
             </Avatar>
-            <div>
-              <p className="text-sm font-medium">{session?.user?.name || "Guest"}</p>
-              <p className="text-xs text-muted-foreground">Logged In</p>
+            
+            <div className="min-w-0">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <p className="text-sm font-medium truncate">
+                      {truncateName(userName)}
+                    </p>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{userName}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              
+              {isMauthNLoggedIn ? (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="flex items-center text-xs text-muted-foreground">
+                        <Shield className="h-3 w-3 mr-1 flex-shrink-0" />
+                        <span className="truncate">MauthN Verified</span>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs">
+                      <div className="space-y-1">
+                        <p className="font-medium">{userEmail}</p>
+                        <p className="text-xs">{mauthNUser.claimant}</p>
+                      </div>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              ) : (
+                <p className="text-xs text-muted-foreground truncate">
+                  {userEmail || "Logged In"}
+                </p>
+              )}
             </div>
           </div>
+          
           <ModeToggle />
         </div>
+        
         <div className="p-4 pt-0">
-          <Button onClick={() => signOut({ callbackUrl: "/login" })} variant="outline" className="w-full">
-            <LogOut className="w-4 h-4 mr-2" />
+          <Button onClick={handleLogout} variant="outline" className="w-full">
+            <LogOut className="h-4 w-4 mr-2" />
             Logout
           </Button>
         </div>
       </SidebarFooter>
+      
       <SidebarTrigger />
     </Sidebar>
   )

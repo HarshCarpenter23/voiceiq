@@ -1,7 +1,6 @@
 "use client"
 
 import Image from 'next/image';
-
 import { useState, useEffect } from "react"
 import { useSession, signIn } from "next-auth/react"
 import { useRouter } from "next/navigation"
@@ -12,7 +11,9 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Label } from "@/components/ui/label"
 import { EyeIcon, EyeOffIcon, MailIcon, LockIcon } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { toast } from "sonner" // Assuming you're using sonner, adjust as needed
 import MAuthNImg from "@/public/images/mauthn.png"
+import { MauthNModal, MauthNUserData } from "@/components/mauthn-modal"
 
 export default function LoginPage() {
     const [email, setEmail] = useState("")
@@ -21,6 +22,7 @@ export default function LoginPage() {
     const [rememberMe, setRememberMe] = useState(false)
     const [error, setError] = useState("")
     const [isLoading, setIsLoading] = useState(false)
+    const [isMauthNModalOpen, setIsMauthNModalOpen] = useState(false)
     const { data: session, status } = useSession()
     const router = useRouter()
 
@@ -55,6 +57,24 @@ export default function LoginPage() {
         }
     }
 
+    const handleMauthNLogin = async (e) => {
+        e.preventDefault()
+        setError("")
+        setIsLoading(true)
+        // Open the MauthN modal dialog
+        setIsMauthNModalOpen(true)
+        setIsLoading(false)
+    }
+
+    const handleMauthNSuccess = (userData: MauthNUserData) => {
+        // Store the data in localStorage for use in sidebar
+        localStorage.setItem("authMethod", "mauthn")
+        
+        // Close modal and redirect
+        setIsMauthNModalOpen(false)
+        router.push("/")
+    }
+
     if (status === "loading") {
         return (
             <div className="flex h-screen items-center justify-center bg-background">
@@ -71,17 +91,13 @@ export default function LoginPage() {
             <div className="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-5 gap-6 shadow-xl rounded-2xl overflow-hidden">
                 {/* Left: Brand Section */}
                 <div className="hidden lg:flex lg:col-span-2 bg-primary flex-col justify-between text-primary-foreground p-8">
+                    {/* Brand content remains the same */}
                     <div>
                         <h1 className="text-2xl font-bold mb-2">Voice IQ</h1>
                         <p className="text-primary-foreground/80">Speech-2-Text</p>
                     </div>
 
                     <div className="space-y-6">
-                        {/* <div className="bg-primary-foreground/10 p-4 rounded-lg">
-              <p className="italic text-sm">"This app completely transformed how our team collaborates. Highly recommended!"</p>
-              <p className="text-xs mt-2 font-medium">- Sarah Johnson, Product Manager</p>
-            </div> */}
-
                         <div className="space-y-2">
                             <h3 className="font-medium">Why users love us:</h3>
                             <ul className="text-sm space-y-1">
@@ -114,6 +130,7 @@ export default function LoginPage() {
                             )}
 
                             <form onSubmit={handleLogin} className="space-y-4">
+                                {/* Email field */}
                                 <div className="space-y-2">
                                     <Label htmlFor="email">Email</Label>
                                     <div className="relative">
@@ -132,6 +149,7 @@ export default function LoginPage() {
                                     </div>
                                 </div>
 
+                                {/* Password field */}
                                 <div className="space-y-2">
                                     <div className="flex justify-between">
                                         <Label htmlFor="password">Password</Label>
@@ -161,20 +179,6 @@ export default function LoginPage() {
                                         </button>
                                     </div>
                                 </div>
-
-                                {/* <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="remember"
-                    checked={rememberMe}
-                    onCheckedChange={setRememberMe}
-                  />
-                  <Label
-                    htmlFor="remember"
-                    className="text-sm font-normal cursor-pointer"
-                  >
-                    Remember me for 30 days
-                  </Label>
-                </div> */}
 
                                 <Button type="submit" className="w-full" disabled={isLoading}>
                                     {isLoading ? (
@@ -229,7 +233,7 @@ export default function LoginPage() {
                             <div className="grid grid-cols-1 gap-3 mt-2">
                                 <Button
                                     variant="outline"
-                                    onClick={() => signIn("mauthn", { callbackUrl: "/" })}
+                                    onClick={handleMauthNLogin}
                                     className="w-full"
                                 >
                                     <Image
@@ -255,6 +259,13 @@ export default function LoginPage() {
                     </div>
                 </Card>
             </div>
+
+            {/* MauthN Modal */}
+            <MauthNModal 
+                isOpen={isMauthNModalOpen}
+                onClose={() => setIsMauthNModalOpen(false)}
+                onSuccess={handleMauthNSuccess}
+            />
         </div>
     )
 }
