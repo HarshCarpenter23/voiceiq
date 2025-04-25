@@ -1,11 +1,13 @@
+// app/api/auth/mauthn/route.ts
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { signIn } from "next-auth/react";
+import { authOptions, getCountryCode } from "@/lib/auth";
 
 export async function POST(req: Request) {
   try {
     const { mauthNUser } = await req.json();
-    
+   
     if (!mauthNUser?.email) {
       return NextResponse.json(
         { error: "Invalid user data" },
@@ -13,21 +15,17 @@ export async function POST(req: Request) {
       );
     }
 
-    // In a real app, you would:
-    // 1. Verify the MauthN user data
-    // 2. Create/update user in your database
-    // 3. Create a proper session
-
-    // For demo purposes, return a success response
+    // In a real app, you would verify the MauthN data
+    // Here we're just returning success to let the client-side handle the authentication
     return NextResponse.json({
       success: true,
       user: {
         name: mauthNUser.name,
         email: mauthNUser.email,
-        image: `https://flagcdn.com/w80/${getCountryCode(mauthNUser.claimant)}.png`
+        image: `https://flagcdn.com/w80/${getCountryCode(mauthNUser.claimant)}.png`,
+        claimant: mauthNUser.claimant
       }
     });
-
   } catch (error) {
     console.error("MauthN session error:", error);
     return NextResponse.json(
@@ -35,12 +33,6 @@ export async function POST(req: Request) {
       { status: 500 }
     );
   }
-}
-
-// Helper function to extract country code
-function getCountryCode(claimant: string): string {
-  const match = claimant.match(/Country Code: ([A-Z]{2})/);
-  return match ? match[1].toLowerCase() : "us";
 }
 
 export const dynamic = "force-dynamic";

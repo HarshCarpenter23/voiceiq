@@ -1,6 +1,6 @@
 // app/layout.tsx
 import "./globals.css"
-import { Inter } from "next/font/google"
+import { Archivo } from "next/font/google"
 import { Metadata } from "next"
 import { ThemeProvider } from "@/components/theme-provider"
 import { SidebarProvider } from "@/components/ui/sidebar"
@@ -9,7 +9,7 @@ import { ClientOnly } from "@/components/client-only"
 import ClientLayout from "@/components/client-layout"
 import { SessionProviderWrapper } from "@/components/session-provider-wrapper"
 
-const inter = Inter({ subsets: ["latin"] })
+const archivo = Archivo({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
   title: "Audio Analysis Dashboard",
@@ -19,7 +19,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className={inter.className}>
+      <body className={archivo.className}>
         <ClientOnly>
           <SessionProviderWrapper>
             <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>

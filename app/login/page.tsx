@@ -11,9 +11,10 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Label } from "@/components/ui/label"
 import { EyeIcon, EyeOffIcon, MailIcon, LockIcon } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { toast } from "sonner" // Assuming you're using sonner, adjust as needed
+import { toast } from "sonner"
 import MAuthNImg from "@/public/images/mauthn.png"
 import { MauthNModal, MauthNUserData } from "@/components/mauthn-modal"
+import { getCookie } from "@/lib/cookies"
 
 export default function LoginPage() {
     const [email, setEmail] = useState("")
@@ -29,9 +30,41 @@ export default function LoginPage() {
     // Redirect if already logged in
     useEffect(() => {
         if (session) {
-            router.push("/dashboard")
+            router.push("/")
         }
     }, [session, router])
+
+    // Check for MauthN data in cookies on component mount
+    useEffect(() => {
+        const checkMauthNAuth = async () => {
+            const mauthNUserDataStr = getCookie("mauthNUserData");
+            if (mauthNUserDataStr) {
+                try {
+                    const userData = JSON.parse(decodeURIComponent(mauthNUserDataStr));
+                    if (userData?.email) {
+                        // Try to sign in with MauthN data
+                        const result = await signIn("mauthn", {
+                            redirect: false,
+                            email: userData.email,
+                            userData: JSON.stringify(userData)
+                        });
+
+                        if (result?.error) {
+                            console.error("MauthN sign-in error:", result.error);
+                        } else {
+                            router.push("/");
+                        }
+                    }
+                } catch (err) {
+                    console.error("Error parsing MauthN cookie data:", err);
+                }
+            }
+        };
+
+        if (status !== "loading" && !session) {
+            checkMauthNAuth();
+        }
+    }, [status, session, router]);
 
     const handleLogin = async (e) => {
         e.preventDefault()
@@ -49,7 +82,7 @@ export default function LoginPage() {
                 setError(result.error)
                 setIsLoading(false)
             } else {
-                router.push("/dashboard")
+                router.push("/")
             }
         } catch (err) {
             setError("Something went wrong. Please try again.")
@@ -60,19 +93,32 @@ export default function LoginPage() {
     const handleMauthNLogin = async (e) => {
         e.preventDefault()
         setError("")
-        setIsLoading(true)
         // Open the MauthN modal dialog
         setIsMauthNModalOpen(true)
-        setIsLoading(false)
     }
 
-    const handleMauthNSuccess = (userData: MauthNUserData) => {
-        // Store the data in localStorage for use in sidebar
-        localStorage.setItem("authMethod", "mauthn")
-        
-        // Close modal and redirect
-        setIsMauthNModalOpen(false)
-        router.push("/")
+    const handleMauthNSuccess = async (userData: MauthNUserData) => {
+        // Sign in with MauthN provider
+        try {
+            const result = await signIn("mauthn", {
+                redirect: false,
+                email: userData.email,
+                userData: JSON.stringify(userData)
+            });
+
+            if (result?.error) {
+                setError(result.error);
+                setIsMauthNModalOpen(false);
+            } else {
+                // Close modal and redirect
+                setIsMauthNModalOpen(false);
+                router.push("/");
+            }
+        } catch (err) {
+            console.error("Error during MauthN sign-in:", err);
+            setError("Failed to authenticate with MauthN");
+            setIsMauthNModalOpen(false);
+        }
     }
 
     if (status === "loading") {

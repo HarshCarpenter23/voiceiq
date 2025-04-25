@@ -33,44 +33,44 @@ export function MauthNModal({ isOpen, onClose, onSuccess }: MauthNModalProps) {
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
   const timeoutRef = useRef<NodeJS.Timeout | null>(null)
 
-const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault()
-  if (!email || !email.includes("@")) {
-    toast.error("Please enter a valid email address")
-    return
-  }
-
-  setLoading(true)
-  setStatus("submitting")
-
-  try {
-    const formData = new FormData()
-    formData.append("email", email.trim().toLowerCase())
-    formData.append("data", "1000")
-    formData.append("requester", "MetaKey")
-
-    const response = await fetch("https://mauthn.mukham.in/add_request", {
-      method: "POST",
-      body: formData,
-    })
-
-    if (!response.ok) {
-      const errorText = await response.text()
-      throw new Error(`HTTP error! status: ${response.status}, ${errorText}`)
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!email || !email.includes("@")) {
+      toast.error("Please enter a valid email address")
+      return
     }
 
-    const id = await response.text()
-    setRequestId(id.trim())
-    setStatus("polling")
-    toast.info("Verification initiated. Please complete authentication in the MauthN app.")
-    startPolling(id.trim())
-  } catch (error) {
-    console.error("MauthN request error:", error)
-    toast.error(error instanceof Error ? error.message : "Failed to connect to MauthN service")
-    setLoading(false)
-    setStatus("idle")
+    setLoading(true)
+    setStatus("submitting")
+
+    try {
+      const formData = new FormData()
+      formData.append("email", email.trim().toLowerCase())
+      formData.append("data", "1000")
+      formData.append("requester", "MetaKey")
+
+      const response = await fetch("https://mauthn.mukham.in/add_request", {
+        method: "POST",
+        body: formData,
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(`HTTP error! status: ${response.status}, ${errorText}`)
+      }
+
+      const id = await response.text()
+      setRequestId(id.trim())
+      setStatus("polling")
+      toast.info("Verification initiated. Please complete authentication in the MauthN app.")
+      startPolling(id.trim())
+    } catch (error) {
+      console.error("MauthN request error:", error)
+      toast.error(error instanceof Error ? error.message : "Failed to connect to MauthN service")
+      setLoading(false)
+      setStatus("idle")
+    }
   }
-}
 
   const startPolling = (token: string) => {
     stopPolling()
@@ -85,75 +85,97 @@ const handleSubmit = async (e: React.FormEvent) => {
     }, 2 * 60 * 1000)
 
     const pollStatus = async () => {
-        if (!isPollingRef.current) return;
-        
-        try {
-          const formData = new FormData();
-          formData.append("token", token);
+      if (!isPollingRef.current) return;
       
-          const response = await fetch("https://mauthn.mukham.in/get_data", {
-            method: "POST",
-            body: formData,
-          });
-      
-          if (response.ok) {
-            const data = await response.text();
-            console.log("MauthN status response:", data);
-      
-            // If we get a response with json array format, that's our successful data
-            if (data.trim().startsWith("[{") && data.trim().endsWith("}]")) {
-              // Stop polling immediately
-              stopPolling();
+      try {
+        const formData = new FormData();
+        formData.append("token", token);
+    
+        const response = await fetch("https://mauthn.mukham.in/get_data", {
+          method: "POST",
+          body: formData,
+        });
+    
+        if (response.ok) {
+          const data = await response.text();
+          console.log("MauthN status response:", data);
+    
+          // If we get a response with json array format, that's our successful data
+          if (data.trim().startsWith("[{") && data.trim().endsWith("}]")) {
+            // Stop polling immediately
+            stopPolling();
+            
+            try {
+              const userData = JSON.parse(data);
               
-              try {
-                const userData = JSON.parse(data);
+              if (Array.isArray(userData) && userData.length > 0) {
+                const user = userData[0];
                 
-                if (Array.isArray(userData) && userData.length > 0) {
-                    const user = userData[0];
-                    localStorage.setItem("mauthNUserData", JSON.stringify(user));
-                    
-                    // Force a full page reload to ensure auth state is updated
-                    window.location.href = "/";
-                    return;
+                // Store in cookie instead of localStorage
+                setCookie("mauthNUserData", encodeURIComponent(JSON.stringify(user)), 7);
+                
+                // Call our API endpoint to create a proper session
+                const sessionResponse = await fetch("/api/auth/mauthn", {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({ mauthNUser: user }),
+                });
+                
+                if (sessionResponse.ok) {
+                  // If onSuccess callback is provided, call it
+                  if (onSuccess) {
+                    onSuccess(user);
                   }
-              } catch (parseError) {
-                console.error("Failed to parse MauthN response:", parseError, "Raw data:", data);
-                toast.error("Authentication failed - invalid data format");
-                setStatus("idle");
-                setLoading(false);
-                return;
+                  
+                  // Force a full page reload to ensure auth state is updated
+                  toast.success("Authentication successful!");
+                  window.location.href = "/";
+                  return;
+                } else {
+                  const errorData = await sessionResponse.json();
+                  throw new Error(errorData.error || "Failed to establish session");
+                }
               }
-            }
-      
-            // Handle expired session
-            if (data.toLowerCase().includes("expired")) {
-              stopPolling();
-              toast.error("Session expired. Please try again.");
+            } catch (parseError) {
+              console.error("Failed to parse MauthN response:", parseError, "Raw data:", data);
+              toast.error("Authentication failed - invalid data format");
               setStatus("idle");
               setLoading(false);
               return;
             }
-      
-            // If it's still pending, we'll poll again on the next interval
-            if (data.includes("pending")) {
-              // Continue polling
-              return;
-            }
-            
-            // If we got here, we received a response we don't recognize
-            console.warn("Unrecognized MauthN response:", data);
-          } else {
-            const errorText = await response.text();
-            console.error("Failed to get MauthN status:", response.status, errorText);
           }
-        } catch (error) {
-          console.error("MauthN polling error:", error);
-          stopPolling();
-          setStatus("idle");
-          setLoading(false);
-          toast.error("Authentication process failed. Please try again.");
+    
+          // Handle expired session
+          if (data.toLowerCase().includes("expired")) {
+            stopPolling();
+            toast.error("Session expired. Please try again.");
+            setStatus("idle");
+            setLoading(false);
+            return;
+          }
+    
+          // If it's still pending, we'll poll again on the next interval
+          if (data.includes("pending")) {
+            // Continue polling
+            return;
+          }
+          
+          // If we got here, we received a response we don't recognize
+          console.warn("Unrecognized MauthN response:", data);
+        } else {
+          const errorText = await response.text();
+          console.error("Failed to get MauthN status:", response.status, errorText);
         }
+      } catch (error) {
+        console.error("MauthN polling error:", error);
+        stopPolling();
+        setStatus("idle");
+        setLoading(false);
+        toast.error("Authentication process failed. Please try again.");
       }
+    }
     
     pollStatus()
     intervalRef.current = setInterval(pollStatus, 5000)

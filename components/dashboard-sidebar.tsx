@@ -19,38 +19,36 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { ModeToggle } from "@/components/mode-toggle"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { getCookie } from "@/lib/cookies"
 
-interface MauthNUserData {
-  name: string
-  claimant: string
-  email: string
+// Helper function to extract country code
+function getCountryCode(claimant) {
+  const match = claimant?.match(/Country Code: ([A-Z]{2})/)
+  return match ? match[1].toLowerCase() : "us"
 }
 
 export function DashboardSidebar() {
   const pathname = usePathname()
-  const { data: session } = useSession()
-  const [mauthNUser, setMauthNUser] = useState<MauthNUserData | null>(null)
+  const { data: session, status } = useSession()
+  const [mauthNUser, setMauthNUser] = useState(null)
 
-  // Check auth status on mount and session changes
+  // Check for MauthN data from cookies on mount
   useEffect(() => {
-    const checkAuthStatus = () => {
-      const mauthNData = localStorage.getItem("mauthNUserData")
-      if (mauthNData) {
+    const checkMauthNData = () => {
+      // Using cookie instead of localStorage
+      const mauthNDataStr = getCookie("mauthNUserData")
+      if (mauthNDataStr) {
         try {
-          setMauthNUser(JSON.parse(mauthNData))
+          const userData = JSON.parse(decodeURIComponent(mauthNDataStr))
+          setMauthNUser(userData)
         } catch (e) {
-          console.error("Failed to parse MauthN data:", e)
+          console.error("Failed to parse MauthN cookie data:", e)
         }
       }
     }
-    checkAuthStatus()
 
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === "mauthNUserData") checkAuthStatus()
-    }
-
-    window.addEventListener('storage', handleStorageChange)
-    return () => window.removeEventListener('storage', handleStorageChange)
+    // Check on mount and when session changes
+    checkMauthNData()
   }, [session])
 
   const routes = [
@@ -61,34 +59,65 @@ export function DashboardSidebar() {
   ]
 
   const handleLogout = () => {
-    localStorage.removeItem("mauthNUserData")
-    if (session) {
-      signOut({ callbackUrl: "/login" })
-    } else {
-      window.location.href = "/login"
-    }
+    // Clear MauthN cookie (will need to be handled by your cookies lib)
+    document.cookie = "mauthNUserData=; max-age=0; path=/;"
+    signOut({ callbackUrl: "/login" })
   }
 
-  // Helper functions
-  const extractCountry = (claimant: string): string => {
-    const match = claimant.match(/Country Code: ([A-Z]{2})/)
-    return match ? match[1] : "US"
-  }
-
-  const getInitials = (name?: string): string => {
+  // Helper function for user initials
+  const getInitials = (name) => {
     if (!name) return "??"
     return name.split(' ').map(part => part[0]).join('').toUpperCase().slice(0, 2)
   }
 
-  const truncateName = (name: string, maxLength = 20): string => {
+  const truncateName = (name, maxLength = 20) => {
+    if (!name) return "User"
     return name.length > maxLength ? `${name.substring(0, maxLength)}...` : name
   }
 
-  // Determine auth state
-  const isMauthNLoggedIn = !!mauthNUser
-  const isSessionLoggedIn = !!session?.user
-  const userName = isMauthNLoggedIn ? mauthNUser.name : session?.user?.name || "Guest"
-  const userEmail = isMauthNLoggedIn ? mauthNUser.email : session?.user?.email
+  // Determine the user's authentication state
+  // First check if user is authenticated via NextAuth session
+  const isSessionActive = status === "authenticated" && !!session?.user
+  
+  // Check if session has MauthN data or if we have standalone MauthN data
+  const hasMauthNData = !!(session?.user?.mauthNData || mauthNUser)
+
+  // Determine display name - prioritize session data
+  const userName = session?.user?.name || (mauthNUser?.name || "Guest")
+  const userEmail = session?.user?.email || (mauthNUser?.email || "")
+  
+  // Get claimant information for displaying MauthN verification
+  const claimant = session?.user?.mauthNData?.claimant || mauthNUser?.claimant
+  
+  // Determine country code for flag
+  const countryCode = claimant ? getCountryCode(claimant) : "us"
+
+  // Image source - use MauthN country flag or session image
+  const imageUrl = hasMauthNData 
+    ? `https://flagcdn.com/w80/${countryCode}.png`
+    : session?.user?.image || ""
+
+  if (status === "loading") {
+    return (
+      <Sidebar className="w-[250px]">
+        <SidebarHeader className="border-b">
+          <div className="flex h-14 items-center px-4">
+            <div className="flex items-center gap-2 font-semibold">
+              <div className="h-6 w-6 bg-gray-200 rounded animate-pulse" />
+              <span className="text-xl">VoiceIQ</span>
+            </div>
+          </div>
+        </SidebarHeader>
+        <SidebarContent>
+          <div className="p-4 space-y-4">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="h-8 bg-gray-100 rounded animate-pulse" />
+            ))}
+          </div>
+        </SidebarContent>
+      </Sidebar>
+    )
+  }
 
   return (
     <Sidebar className="w-[250px]">
@@ -120,20 +149,8 @@ export function DashboardSidebar() {
         <div className="flex items-center justify-between p-4 gap-2">
           <div className="flex items-center gap-2 min-w-0">
             <Avatar className="h-8 w-8 flex-shrink-0">
-              {isMauthNLoggedIn ? (
-                <>
-                  <AvatarImage
-                    src={`https://flagcdn.com/w80/${extractCountry(mauthNUser.claimant).toLowerCase()}.png`}
-                    alt="Country Flag"
-                  />
-                  <AvatarFallback>{getInitials(userName)}</AvatarFallback>
-                </>
-              ) : (
-                <>
-                  <AvatarImage src={session?.user?.image || ""} alt="User" />
-                  <AvatarFallback>{getInitials(userName)}</AvatarFallback>
-                </>
-              )}
+              <AvatarImage src={imageUrl} alt="User" />
+              <AvatarFallback>{getInitials(userName)}</AvatarFallback>
             </Avatar>
             
             <div className="min-w-0">
@@ -150,7 +167,7 @@ export function DashboardSidebar() {
                 </Tooltip>
               </TooltipProvider>
               
-              {isMauthNLoggedIn ? (
+              {hasMauthNData ? (
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -162,7 +179,7 @@ export function DashboardSidebar() {
                     <TooltipContent className="max-w-xs">
                       <div className="space-y-1">
                         <p className="font-medium">{userEmail}</p>
-                        <p className="text-xs">{mauthNUser.claimant}</p>
+                        <p className="text-xs">{claimant}</p>
                       </div>
                     </TooltipContent>
                   </Tooltip>
