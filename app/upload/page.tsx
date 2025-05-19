@@ -56,7 +56,7 @@ export default function UploadPage() {
     try {
       // Create an XMLHttpRequest to track upload progress
       const xhr = new XMLHttpRequest();
-      
+
       // Set up progress tracking
       xhr.upload.addEventListener("progress", (event) => {
         if (event.lengthComputable) {
@@ -67,7 +67,7 @@ export default function UploadPage() {
 
       // Promise to handle the XHR
       const uploadPromise = new Promise<any>((resolve, reject) => {
-        xhr.onload = function() {
+        xhr.onload = function () {
           if (xhr.status >= 200 && xhr.status < 300) {
             try {
               const response = JSON.parse(xhr.responseText);
@@ -79,14 +79,14 @@ export default function UploadPage() {
             reject(new Error(`HTTP Error: ${xhr.status}`));
           }
         };
-        
-        xhr.onerror = function() {
+
+        xhr.onerror = function () {
           reject(new Error("Network Error"));
         };
       });
 
       // Set up and send the request
-      xhr.open("POST", "http://104.225.221.108:8080/create_log", true);
+      xhr.open("POST", "http://172.105.54.63:8000/create_log", true);
       xhr.send(formData);
 
       // Wait for the upload to complete
@@ -102,7 +102,7 @@ export default function UploadPage() {
       setCurrentFile(null);
       setIsUploading(false);
       setUploadProgress(0);
-      
+
       // Next file in queue will be processed by useEffect
 
     } catch (error) {
@@ -112,7 +112,7 @@ export default function UploadPage() {
         description: `Error uploading "${file.name}": ${error instanceof Error ? error.message : "Unknown error"}`,
         variant: "destructive",
       });
-      
+
       // Reset for next file
       setCurrentFile(null);
       setUploadProgress(0);

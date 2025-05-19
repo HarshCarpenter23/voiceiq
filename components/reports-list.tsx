@@ -12,8 +12,6 @@ import "jspdf-autotable"
 import { serialize } from 'next-mdx-remote/serialize'
 import { useReportStore } from "@/store/reportStore"
 import { useRouter } from "next/navigation"
-
-
 interface Report {
   id: string
   caller_name: string
@@ -34,7 +32,7 @@ export function ReportsList() {
   const fetchReports = async () => {
     setLoading(true)
     try {
-      const res = await fetch("http://104.225.221.108:8080/logs/all/50", {
+      const res = await fetch("http://172.105.54.63:8000/logs/all", {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -282,12 +280,12 @@ export function ReportsList() {
                     <TableCell>
                       <span
                         className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${sentimentColor === "green"
-                            ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100"
-                            : sentimentColor === "red"
-                              ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100"
-                              : sentimentColor === "blue"
-                                ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100"
-                                : "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-100"
+                          ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100"
+                          : sentimentColor === "red"
+                            ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100"
+                            : sentimentColor === "blue"
+                              ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100"
+                              : "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-100"
                           }`}
                       >
                         {report.caller_sentiment || "Unknown"}
