@@ -16,7 +16,7 @@ export default function ReportPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await fetch(`http://172.105.54.63:8000/logs/${params.id}`)
+        const res = await fetch(`https://voiceiq-db.indominuslabs.in/logs/${params.id}`)
         if (!res.ok) {
           throw new Error(`Error ${res.status}: ${res.statusText}`)
         }
@@ -66,9 +66,7 @@ export default function ReportPage() {
         <TabsContent value="tarsseption">
           <div className="min-h-5 text-gray-200 flex items-center justify-center px-6">
             <p className="max-w-2xl text-lg leading-relaxed font-light tracking-wide">
-              This is a beautiful piece of text displayed in a dark theme. The
-              soft gray color reduces eye strain, and the generous line height makes
-              it easy and pleasant to read for long stretches.
+              {transcription}
             </p>
           </div>
         </TabsContent>

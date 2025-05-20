@@ -86,7 +86,7 @@ export default function UploadPage() {
       });
 
       // Set up and send the request
-      xhr.open("POST", "http://172.105.54.63:8000/create_log", true);
+      xhr.open("POST", "https://voiceiq-db.indominuslabs.in/create_log", true);
       xhr.send(formData);
 
       // Wait for the upload to complete

@@ -19,7 +19,7 @@ export default function LoginPage() {
         setLoading(true);
 
         try {
-            const res = await fetch("http://172.105.54.63:8000/login", {
+            const res = await fetch("https://voiceiq-db.indominuslabs.in/login", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",

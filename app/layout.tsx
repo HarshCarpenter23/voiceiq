@@ -5,9 +5,8 @@ import { Metadata } from "next"
 import { ThemeProvider } from "@/components/theme-provider"
 import { SidebarProvider } from "@/components/ui/sidebar"
 import { Toaster } from "@/components/ui/toaster"
-import { ClientOnly } from "@/components/client-only"
-import ClientLayout from "@/components/client-layout"
-import { SessionProviderWrapper } from "@/components/session-provider-wrapper"
+import { DashboardSidebar } from "@/components/dashboard-sidebar"
+
 
 const archivo = Archivo({ subsets: ["latin"] })
 
@@ -17,19 +16,19 @@ export const metadata: Metadata = {
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+
   return (
     <html lang="en">
       <body className={archivo.className}>
-        <ClientOnly>
-          <SessionProviderWrapper>
-            <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-              <SidebarProvider>
-                <ClientLayout>{children}</ClientLayout>
-                <Toaster />
-              </SidebarProvider>
-            </ThemeProvider>
-          </SessionProviderWrapper>
-        </ClientOnly>
+
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+          <SidebarProvider>
+            <DashboardSidebar />
+            {children}
+            <Toaster />
+          </SidebarProvider>
+        </ThemeProvider>
+
       </body>
     </html>
   )

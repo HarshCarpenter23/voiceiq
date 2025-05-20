@@ -18,14 +18,13 @@ const ChatBox = () => {
 
     const handleSend = async () => {
         if (input.trim() === "") return;
-
         const userMessage: Message = { type: "user", text: input };
         setMessages((prev) => [...prev, userMessage]);
 
         setInput("");
 
         try {
-            const res = await fetch("http://172.105.54.63:8000/chat", {
+            const res = await fetch("https://voiceiq-db.indominuslabs.in/chat", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",

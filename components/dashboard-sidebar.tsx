@@ -1,7 +1,6 @@
 "use client"
 import Link from "next/link"
-import { signOut } from "next-auth/react"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { FileText, Home, Upload, LogOut } from "lucide-react"
 import {
   Sidebar,
@@ -17,20 +16,34 @@ import { Avatar, } from "@/components/ui/avatar"
 import { ModeToggle } from "@/components/mode-toggle"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { useEffect, useState } from "react"
 
 
 
 export function DashboardSidebar() {
   const pathname = usePathname()
+  const router = useRouter()
+  const [login, SetLogin] = useState(false)
   const routes = [
     { title: "Dashboard", icon: Home, href: "/" },
     { title: "Upload", icon: Upload, href: "/upload" },
     { title: "Reports", icon: FileText, href: "/reports" }
   ]
+  useEffect(() => {
+    console.log(pathname)
+    if (pathname == "/login") {
+      SetLogin(true)
+    } else {
+      SetLogin(false)
+    }
 
+  }, [pathname])
+  if (login) {
+    return null
+  }
   const handleLogout = () => {
     document.cookie = "token=; max-age=0; path=/;"
-    signOut({ callbackUrl: "/login" })
+    router.push("/login")
   }
 
   if (status === "loading") {

@@ -32,7 +32,7 @@ export function ReportsList() {
   const fetchReports = async () => {
     setLoading(true)
     try {
-      const res = await fetch("http://172.105.54.63:8000/logs/all", {
+      const res = await fetch("https://voiceiq-db.indominuslabs.in/logs/all", {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
