@@ -46,27 +46,27 @@ export function DashboardSidebar() {
     router.push("/login")
   }
 
-  if (status === "loading") {
-    return (
-      <Sidebar className="w-[250px]">
-        <SidebarHeader className="border-b">
-          <div className="flex h-14 items-center px-4">
-            <div className="flex items-center gap-2 font-semibold">
-              <div className="h-6 w-6 bg-gray-200 rounded animate-pulse" />
-              <span className="text-xl">VoiceIQ</span>
-            </div>
-          </div>
-        </SidebarHeader>
-        <SidebarContent>
-          <div className="p-4 space-y-4">
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="h-8 bg-gray-100 rounded animate-pulse" />
-            ))}
-          </div>
-        </SidebarContent>
-      </Sidebar>
-    )
-  }
+  // if (status === "loading") {
+  //   return (
+  //     <Sidebar className="w-[250px]">
+  //       <SidebarHeader className="border-b">
+  //         <div className="flex h-14 items-center px-4">
+  //           <div className="flex items-center gap-2 font-semibold">
+  //             <div className="h-6 w-6 bg-gray-200 rounded animate-pulse" />
+  //             <span className="text-xl">VoiceIQ</span>
+  //           </div>
+  //         </div>
+  //       </SidebarHeader>
+  //       <SidebarContent>
+  //         <div className="p-4 space-y-4">
+  //           {[1, 2, 3, 4].map((i) => (
+  //             <div key={i} className="h-8 bg-gray-100 rounded animate-pulse" />
+  //           ))}
+  //         </div>
+  //       </SidebarContent>
+  //     </Sidebar>
+  //   )
+  // }
 
   return (
     <Sidebar className="w-[250px]">

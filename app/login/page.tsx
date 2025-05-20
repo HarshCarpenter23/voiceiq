@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { DashboardShell } from "@/components/dashboard-shell";
-import { DashboardHeader } from "@/components/dashboard-header";
 
 export default function LoginPage() {
     const router = useRouter();
@@ -40,8 +39,6 @@ export default function LoginPage() {
                 setLoading(false);
                 return;
             }
-
-            // Save token in cookie for 1 day
             document.cookie = `token=${data.access_token}; path=/; max-age=86400; Secure; SameSite=Lax`;
 
             setLoading(false);
@@ -54,7 +51,7 @@ export default function LoginPage() {
 
     return (
         <DashboardShell>
-            {/* <DashboardHeader heading="VOICE IQ" /> */}
+
             <div className="h-full flex items-center justify-center bg-gradient-to-tr   p-6">
                 <div className="max-w-md w-full bg-white dark:bg-zinc-900 rounded-xl shadow-lg p-8">
                     <h1 className="text-3xl font-bold mb-6 text-center text-blue-700 dark:text-white">
