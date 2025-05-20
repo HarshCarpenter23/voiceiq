@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import Link from "next/link"
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
@@ -12,6 +12,27 @@ import "jspdf-autotable"
 import { serialize } from 'next-mdx-remote/serialize'
 import { useReportStore } from "@/store/reportStore"
 import { useRouter } from "next/navigation"
+
+
+function formatDateTime(isoInput: string) {
+  // Trim microseconds to 3 digits and convert to valid ISO format for JS
+  const trimmed = isoInput.replace(/(\.\d{3})\d+/, '$1').replace('+00:00', 'Z');
+  const date = new Date(trimmed);
+
+  const day = String(date.getUTCDate()).padStart(2, '0');
+  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+  const year = date.getUTCFullYear();
+
+  let hours = date.getUTCHours();
+  const minutes = String(date.getUTCMinutes()).padStart(2, '0');
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  hours = hours % 12 || 12;
+  const hourStr = String(hours).padStart(2, '0');
+
+  return `${day}/${month}/${year} and ${hourStr}:${minutes} ${ampm}`;
+}
+
+
 interface Report {
   id: string
   caller_name: string
@@ -261,7 +282,7 @@ export function ReportsList() {
                 </TableCell>
               </TableRow>
             ) : (
-              filteredReports.map((report) => {
+              filteredReports.map((report: any) => {
                 const sentimentColor = getSentimentColor(report.caller_sentiment);
 
                 return (
@@ -276,7 +297,7 @@ export function ReportsList() {
 
                     </TableCell>
                     <TableCell>{report.request_type || "N/A"}</TableCell>
-                    <TableCell>{report.date || "N/A"}</TableCell>
+                    <TableCell>{formatDateTime(report.created_at) || "N/A"}</TableCell>
                     <TableCell>
                       <span
                         className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${sentimentColor === "green"
