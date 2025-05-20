@@ -29,7 +29,7 @@ function formatDateTime(isoInput: string) {
   hours = hours % 12 || 12;
   const hourStr = String(hours).padStart(2, '0');
 
-  return `${day}/${month}/${year} and ${hourStr}:${minutes} ${ampm}`;
+  return `${day}/${month}/${year} at ${hourStr}:${minutes} ${ampm}`;
 }
 
 
