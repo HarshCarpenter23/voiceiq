@@ -1,20 +1,29 @@
 "use client"
 
 import { useState, useEffect } from "react"
-
+import { motion, AnimatePresence } from "framer-motion"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Download, FileText, Search } from "lucide-react"
+import { 
+  Download, 
+  FileText, 
+  Search, 
+  ChevronLeft, 
+  ChevronRight, 
+  Filter,
+  Calendar,
+  ArrowDownUp,
+  Eye
+} from "lucide-react"
 import { jsPDF } from "jspdf"
 import "jspdf-autotable"
 import { serialize } from 'next-mdx-remote/serialize'
 import { useReportStore } from "@/store/reportStore"
 import { useRouter } from "next/navigation"
 
-
-function formatDateTime(isoInput: string) {
+function formatDateTime(isoInput) {
   // Trim microseconds to 3 digits and convert to valid ISO format for JS
   const trimmed = isoInput.replace(/(\.\d{3})\d+/, '$1').replace('+00:00', 'Z');
   const date = new Date(trimmed);
@@ -32,23 +41,23 @@ function formatDateTime(isoInput: string) {
   return `${day}/${month}/${year} at ${hourStr}:${minutes} ${ampm}`;
 }
 
-
-interface Report {
-  id: string
-  caller_name: string
-  request_type: string
-  date: string
-  caller_sentiment: string
-  report_generated: string
-}
-
 export function ReportsList() {
   const [searchQuery, setSearchQuery] = useState("")
-  const [reports, setReports] = useState<Report[]>([])
+  const [reports, setReports] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
+  const [currentPage, setCurrentPage] = useState(1)
+  const [reportsPerPage] = useState(5)
+  const [sortConfig, setSortConfig] = useState({ key: 'created_at', direction: 'desc' })
+  const [isFilterVisible, setIsFilterVisible] = useState(false)
+  const [selectedSentiment, setSelectedSentiment] = useState("all")
   const router = useRouter()
   const { setSelectedReport } = useReportStore()
+
+  // Blob shape decorations
+  const Blob = ({ className }) => (
+    <div className={`absolute blur-3xl opacity-20 rounded-full mix-blend-multiply ${className}`}></div>
+  )
 
   const fetchReports = async () => {
     setLoading(true)
@@ -75,7 +84,7 @@ export function ReportsList() {
   }, [])
 
   // Parse markdown using MDX serializer
-  const parseMarkdownWithMDX = async (markdown: string) => {
+  const parseMarkdownWithMDX = async (markdown) => {
     if (!markdown) return { title: "", mdxSource: null };
 
     // Extract title (assuming first line is title)
@@ -99,7 +108,7 @@ export function ReportsList() {
     }
   }
 
-  const generatePDF = async (report: Report) => {
+  const generatePDF = async (report) => {
     // Initialize PDF document
     const doc = new jsPDF();
 
@@ -192,8 +201,8 @@ export function ReportsList() {
       yPosition += textLines.length * 7; // Add space based on number of lines
     }
 
-    // Add footer - fix for the TypeScript error
-    const pageCount = (doc as any).internal.pages.length - 1;
+    // Add footer
+    const pageCount = doc.internal.pages.length - 1;
     for (let i = 1; i <= pageCount; i++) {
       doc.setPage(i);
       doc.setFontSize(10);
@@ -210,14 +219,45 @@ export function ReportsList() {
     doc.save(fileName);
   }
 
-  const filteredReports = reports.filter(
-    (report) =>
-      report.caller_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      report.request_type?.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  // Sorting function
+  const requestSort = (key) => {
+    let direction = 'asc';
+    if (sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  // Apply sorting
+  const sortedReports = [...reports].sort((a, b) => {
+    if (a[sortConfig.key] < b[sortConfig.key]) {
+      return sortConfig.direction === 'asc' ? -1 : 1;
+    }
+    if (a[sortConfig.key] > b[sortConfig.key]) {
+      return sortConfig.direction === 'asc' ? 1 : -1;
+    }
+    return 0;
+  });
+
+  // Apply filters
+  const filteredReports = sortedReports.filter(
+    (report) => {
+      // Search filter
+      const matchesSearch = 
+        report.caller_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        report.request_type?.toLowerCase().includes(searchQuery.toLowerCase());
+      
+      // Sentiment filter
+      const matchesSentiment = 
+        selectedSentiment === "all" || 
+        (report.caller_sentiment?.toLowerCase().includes(selectedSentiment.toLowerCase()));
+      
+      return matchesSearch && matchesSentiment;
+    }
+  );
 
   // Function to determine sentiment color
-  const getSentimentColor = (sentiment: string) => {
+  const getSentimentColor = (sentiment) => {
     if (!sentiment) return "gray";
 
     const lowerSentiment = sentiment.toLowerCase();
@@ -232,104 +272,320 @@ export function ReportsList() {
     }
   }
 
+  // Get current reports for pagination
+  const indexOfLastReport = currentPage * reportsPerPage;
+  const indexOfFirstReport = indexOfLastReport - reportsPerPage;
+  const currentReports = filteredReports.slice(indexOfFirstReport, indexOfLastReport);
+  const totalPages = Math.ceil(filteredReports.length / reportsPerPage);
+
+  // Change page
+  const paginate = (pageNumber) => setCurrentPage(pageNumber);
+
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle>All Reports</CardTitle>
-            <CardDescription>A list of all your generated reports.</CardDescription>
-          </div>
-          <div className="relative w-64">
-            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search reports..."
-              className="pl-8"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Caller Name</TableHead>
-              <TableHead>Request Type</TableHead>
-              <TableHead>Date</TableHead>
-              <TableHead>Sentiment</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {loading ? (
-              <TableRow>
-                <TableCell colSpan={5} className="h-24 text-center">
-                  Loading reports...
-                </TableCell>
-              </TableRow>
-            ) : error ? (
-              <TableRow>
-                <TableCell colSpan={5} className="h-24 text-center text-red-500">
-                  {error}
-                </TableCell>
-              </TableRow>
-            ) : filteredReports.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={5} className="h-24 text-center">
-                  No reports found.
-                </TableCell>
-              </TableRow>
-            ) : (
-              filteredReports.map((report: any) => {
-                const sentimentColor = getSentimentColor(report.caller_sentiment);
-
-                return (
-                  <TableRow key={report.id}>
-                    <TableCell className="font-medium">
-                      <Button onClick={() => {
-                        setSelectedReport(report)
-                        router.push(`/reports/${report.id}`)
-                      }}>
-                        {report.caller_name}
-                      </Button>
-
-                    </TableCell>
-                    <TableCell>{report.request_type || "N/A"}</TableCell>
-                    <TableCell>{formatDateTime(report.created_at) || "N/A"}</TableCell>
-                    <TableCell>
-                      <span
-                        className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${sentimentColor === "green"
-                          ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100"
-                          : sentimentColor === "red"
-                            ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100"
-                            : sentimentColor === "blue"
-                              ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100"
-                              : "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-100"
+    <div className="relative overflow-hidden">
+      {/* Decorative blobs */}
+      <Blob className="bg-blue-300 w-64 h-64 -top-20 -left-20" />
+      <Blob className="bg-purple-300 w-72 h-72 -bottom-20 -right-20" />
+      
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <Card className="backdrop-blur-sm bg-white/90 dark:bg-gray-900/90 border border-gray-100 dark:border-gray-800 shadow-xl rounded-2xl">
+          <CardHeader className="border-b border-gray-100 dark:border-gray-800">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.6, delay: 0.1 }}
+              >
+                <CardTitle className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">All Reports</CardTitle>
+                <CardDescription className="text-gray-500 dark:text-gray-400">
+                  A list of all your generated reports
+                </CardDescription>
+              </motion.div>
+              
+              <div className="flex flex-col md:flex-row gap-2 w-full md:w-auto">
+                <motion.div 
+                  className="relative w-full md:w-64"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.6, delay: 0.2 }}
+                >
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Input
+                    placeholder="Search reports..."
+                    className="pl-10 bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded-full focus:ring focus:ring-blue-200 dark:focus:ring-blue-900 transition-all duration-200"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                </motion.div>
+                
+                <motion.div
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.6, delay: 0.3 }}
+                >
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="rounded-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200"
+                    onClick={() => setIsFilterVisible(!isFilterVisible)}
+                  >
+                    <Filter className="h-4 w-4" />
+                  </Button>
+                </motion.div>
+              </div>
+            </div>
+            
+            {/* Filters Panel */}
+            <AnimatePresence>
+              {isFilterVisible && (
+                <motion.div 
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="overflow-hidden"
+                >
+                  <div className="pt-4 flex flex-wrap gap-3">
+                    <div>
+                      <p className="text-sm font-medium mb-1 text-gray-500">Sentiment Filter</p>
+                      <div className="flex gap-2">
+                        {["all", "positive", "neutral", "negative"].map((sentiment) => (
+                          <Button
+                            key={sentiment}
+                            size="sm"
+                            variant={selectedSentiment === sentiment ? "default" : "outline"}
+                            className={`rounded-full text-xs capitalize ${
+                              selectedSentiment === sentiment 
+                                ? "bg-gradient-to-r from-blue-500 to-purple-500" 
+                                : "hover:bg-gray-100 dark:hover:bg-gray-800"
+                            }`}
+                            onClick={() => setSelectedSentiment(sentiment)}
+                          >
+                            {sentiment}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <p className="text-sm font-medium mb-1 text-gray-500">Sort By</p>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant={sortConfig.key === 'created_at' ? "default" : "outline"}
+                          className={`rounded-full text-xs ${
+                            sortConfig.key === 'created_at' 
+                              ? "bg-gradient-to-r from-blue-500 to-purple-500" 
+                              : "hover:bg-gray-100 dark:hover:bg-gray-800"
                           }`}
-                      >
-                        {report.caller_sentiment || "Unknown"}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => generatePDF(report)}
-                        title="Download PDF Report"
-                      >
-                        <Download className="h-4 w-4" />
-                        <span className="sr-only">Download PDF</span>
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                )
-              })
+                          onClick={() => requestSort('created_at')}
+                        >
+                          Date {sortConfig.key === 'created_at' && (
+                            sortConfig.direction === 'asc' ? '↑' : '↓'
+                          )}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant={sortConfig.key === 'caller_name' ? "default" : "outline"}
+                          className={`rounded-full text-xs ${
+                            sortConfig.key === 'caller_name' 
+                              ? "bg-gradient-to-r from-blue-500 to-purple-500" 
+                              : "hover:bg-gray-100 dark:hover:bg-gray-800"
+                          }`}
+                          onClick={() => requestSort('caller_name')}
+                        >
+                          Name {sortConfig.key === 'caller_name' && (
+                            sortConfig.direction === 'asc' ? '↑' : '↓'
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </CardHeader>
+          
+          <CardContent className="p-0">
+            <div className="overflow-hidden">
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                      <TableHead className="font-medium">Caller Name</TableHead>
+                      <TableHead className="font-medium">Request Type</TableHead>
+                      <TableHead className="font-medium">
+                        <div className="flex items-center gap-1">
+                          <Calendar className="h-3.5 w-3.5" />
+                          <span>Date</span>
+                        </div>
+                      </TableHead>
+                      <TableHead className="font-medium">Sentiment</TableHead>
+                      <TableHead className="text-right font-medium">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {loading ? (
+                      <TableRow>
+                        <TableCell colSpan={5} className="h-32">
+                          <div className="flex flex-col items-center justify-center">
+                            <div className="h-8 w-8 rounded-full border-2 border-blue-500 border-r-transparent animate-spin"></div>
+                            <p className="mt-2 text-sm text-gray-500">Loading reports...</p>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ) : error ? (
+                      <TableRow>
+                        <TableCell colSpan={5} className="h-32 text-center">
+                          <div className="flex flex-col items-center justify-center">
+                            <div className="rounded-full bg-red-100 p-3">
+                              <svg className="h-6 w-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938-9H18a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V8a2 2 0 012-2z" />
+                              </svg>
+                            </div>
+                            <p className="mt-2 text-red-500 font-medium">{error}</p>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ) : currentReports.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={5} className="h-32 text-center">
+                          <div className="flex flex-col items-center justify-center">
+                            <div className="rounded-full bg-gray-100 dark:bg-gray-800 p-3">
+                              <FileText className="h-6 w-6 text-gray-400" />
+                            </div>
+                            <p className="mt-2 text-gray-500">No reports found.</p>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      currentReports.map((report, index) => {
+                        const sentimentColor = getSentimentColor(report.caller_sentiment);
+                        
+                        return (
+                          <TableRow 
+                            key={report.id}
+                            className="group hover:bg-gray-50/50 dark:hover:bg-gray-800/20 transition-all duration-200"
+                          >
+                            <TableCell>
+                              <Button 
+                                variant="ghost"
+                                className="px-0 font-medium text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors duration-200"
+                                onClick={() => {
+                                  setSelectedReport(report)
+                                  router.push(`/reports/${report.id}`)
+                                }}
+                              >
+                                {report.caller_name}
+                              </Button>
+                            </TableCell>
+                            <TableCell className="text-gray-600 dark:text-gray-300">
+                              {report.request_type || "N/A"}
+                            </TableCell>
+                            <TableCell className="text-gray-600 dark:text-gray-300">
+                              {formatDateTime(report.created_at) || "N/A"}
+                            </TableCell>
+                            <TableCell>
+                              <span
+                                className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium transition-all duration-200 ${
+                                  sentimentColor === "green"
+                                    ? "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300"
+                                    : sentimentColor === "red"
+                                      ? "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300"
+                                      : sentimentColor === "blue"
+                                        ? "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300"
+                                        : "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300"
+                                }`}
+                              >
+                                {report.caller_sentiment || "Unknown"}
+                              </span>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200"
+                                  onClick={() => {
+                                    setSelectedReport(report)
+                                    router.push(`/reports/${report.id}`)
+                                  }}
+                                  title="View Report"
+                                >
+                                  <Eye className="h-4 w-4 text-gray-500" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200"
+                                  onClick={() => generatePDF(report)}
+                                  title="Download PDF Report"
+                                >
+                                  <Download className="h-4 w-4 text-gray-500" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        )
+                      })
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+            
+            {/* Pagination */}
+            {!loading && !error && filteredReports.length > 0 && (
+              <div className="px-4 py-4 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between">
+                <div className="text-sm text-gray-500">
+                  Showing <span className="font-medium">{indexOfFirstReport + 1}</span> to{" "}
+                  <span className="font-medium">
+                    {Math.min(indexOfLastReport, filteredReports.length)}
+                  </span>{" "}
+                  of <span className="font-medium">{filteredReports.length}</span> reports
+                </div>
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8 rounded-full"
+                    onClick={() => paginate(Math.max(1, currentPage - 1))}
+                    disabled={currentPage === 1}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  {[...Array(totalPages)].map((_, i) => (
+                    <Button
+                      key={i}
+                      variant={currentPage === i + 1 ? "default" : "outline"}
+                      size="icon"
+                      className={`h-8 w-8 rounded-full ${
+                        currentPage === i + 1 ? "bg-gradient-to-r from-blue-500 to-purple-500" : ""
+                      }`}
+                      onClick={() => paginate(i + 1)}
+                    >
+                      {i + 1}
+                    </Button>
+                  ))}
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8 rounded-full"
+                    onClick={() => paginate(Math.min(totalPages, currentPage + 1))}
+                    disabled={currentPage === totalPages}
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
             )}
-          </TableBody>
-        </Table>
-      </CardContent>
-    </Card>
+          </CardContent>
+        </Card>
+      </motion.div>
+    </div>
   )
 }
