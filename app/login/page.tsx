@@ -61,7 +61,7 @@ const FeatureCard = ({ icon: Icon, title, description, delay }) => {
                     </div>
                 </motion.div>
                 <h3 className="text-lg font-medium mb-2">{title}</h3>
-                <p className="text-gray-300 text-sm">{description}</p>
+                <p className="dark:text-gray-300 text-sm text-gray-700">{description}</p>
             </motion.div>
         </GlassCard>
     )
@@ -171,7 +171,7 @@ export default function DashboardPage() {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         transition={{ duration: 0.8, delay: 0.4 }}
-                        className="text-lg text-gray-400 max-w-3xl mx-auto mb-8"
+                        className="text-lg text-gray-700 dark:text-gray-400 max-w-3xl mx-auto mb-8"
                     >
                         AI-powered transcription with blazing speed and incredible accuracy
                     </motion.p>
@@ -193,12 +193,12 @@ export default function DashboardPage() {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: mounted ? 1 : 0 }}
                         transition={{ duration: 0.8, delay: 0.8 }}
-                        className="text-2xl font-semibold mb-10 text-center"
+                        className="text-2xl font-semibold mb-10 text-center text-gray-700 dark:text-white"
                     >
                         Premium Features
                     </motion.h2>
 
-                    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+                    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4 ">
                         <FeatureCard icon={Mic} title="High Quality Transcription" description="Achieve up to 95% accuracy with our industry-leading AI transcription engine." delay={0.9} />
                         <FeatureCard icon={Languages} title="100+ Languages Supported" description="Transcribe in English, Spanish, French, Hindi, and many more with ease." delay={1.0} />
                         <FeatureCard icon={UserCheck} title="Speaker Recognition" description="Automatically identify and label different speakers in your audio." delay={1.1} />
@@ -208,7 +208,7 @@ export default function DashboardPage() {
 
                 <GlassCard className="p-8" delay={1.3}>
                     <h2 className="text-2xl font-semibold mb-6">How It Works</h2>
-                    <p className="text-gray-300 mb-10">
+                    <p className="text-gray-700 dark:text-gray-300 mb-10">
                         Upload your audio, view detailed reports, and chat with your transcript in three simple steps.
                     </p>
 
@@ -223,7 +223,7 @@ export default function DashboardPage() {
                                         <step.icon className="h-8 w-8 text-blue-400" strokeWidth={1.5} />
                                     </div>
                                     <h3 className="text-lg font-medium mb-2">{step.title}</h3>
-                                    <p className="text-gray-300 text-sm">{step.description}</p>
+                                    <p className="dark:text-gray-300 text-sm text-gray-700">{step.description}</p>
                                 </motion.div>
                             </div>
                         ))}
