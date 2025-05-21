@@ -1,12 +1,14 @@
 "use client"
 
 import { useParams } from "next/navigation"
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 import { DashboardShell } from "@/components/dashboard-shell"
 import ChatBox from "@/components/chat-box"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { CalendarIcon, FileAudio, MessageCircle, Clock, Phone, Info, ArrowDownCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
+import * as htmlToImage from 'html-to-image' // Fixed import
+import { jsPDF } from "jspdf"
 
 export default function ReportPage() {
   const params = useParams()
@@ -18,8 +20,61 @@ export default function ReportPage() {
     date: "",
     duration: "",
     caller: "",
-    callEvents: []
+    issueSummary: ""
   })
+
+  const transcriptionRef = useRef<HTMLDivElement>(null)
+  const issueSummaryRef = useRef<HTMLDivElement>(null)
+
+  const exportToPdf = async (ref: React.RefObject<HTMLDivElement>, fileName: string) => {
+    if (!ref.current) return
+
+    try {
+      const element = ref.current
+      // Fixed method call
+      const dataUrl = await htmlToImage.toPng(element)
+
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm'
+      })
+
+      // Get the dimensions of the PDF page
+      const pageWidth = pdf.internal.pageSize.getWidth()
+      const pageHeight = pdf.internal.pageSize.getHeight()
+
+      // Calculate the dimensions of the image to fit the page
+      const imgProps = pdf.getImageProperties(dataUrl)
+      const imgWidth = pageWidth - 20 // 10mm margin on each side
+      const imgHeight = (imgProps.height * imgWidth) / imgProps.width
+
+      // Add the image to the PDF
+      pdf.addImage(dataUrl, 'PNG', 10, 10, imgWidth, imgHeight)
+
+      // Add metadata to the PDF
+      pdf.setFontSize(10)
+      pdf.setTextColor(150)
+      pdf.text(`Exported from VoiceIQ - ${new Date().toLocaleString()}`, 10, pageHeight - 10)
+
+      // Save the PDF
+      pdf.save(`${fileName}.pdf`)
+    } catch (error) {
+      console.error('Error generating PDF:', error)
+      alert('Failed to generate PDF. Please try again.')
+    }
+  }
+
+  const exportTranscription = () => {
+    if (transcriptionRef.current) {
+      exportToPdf(transcriptionRef, `transcription-${params.id}`)
+    }
+  }
+
+  const exportIssueSummary = () => {
+    if (issueSummaryRef.current) {
+      exportToPdf(issueSummaryRef, `issue-summary-${params.id}`)
+    }
+  }
 
   useEffect(() => {
     const fetchData = async () => {
@@ -34,15 +89,12 @@ export default function ReportPage() {
         setTranscription(result.transcription || "No transcription available")
         setCalllog(result.call_log || "No call log available")
         
-        // Parse call log for events to display in timeline
-        const callEvents = parseCallLogEvents(result.call_log || "");
-        
         // Extract metadata if available
         setMetadata({
           date: result.call_date || new Date().toLocaleDateString(),
           duration: result.call_duration || "Unknown",
           caller: result.caller_name || "Unknown caller",
-          callEvents: callEvents
+          issueSummary: result.issue_summary || "No issue details available"
         })
       } catch (err) {
         setError(err.message || "Failed to fetch report data")
@@ -55,54 +107,6 @@ export default function ReportPage() {
       fetchData()
     }
   }, [params.id])
-
-  // Parse call log to extract meaningful events for timeline display
-  const parseCallLogEvents = (rawLog) => {
-    // Simple example parsing - in production you'd want more sophisticated parsing
-    const events = [];
-    
-    // Try to extract timestamps and events from logs
-    const lines = rawLog.split('\n').filter(line => line.trim().length > 0);
-    
-    lines.forEach((line, index) => {
-      // Look for timestamp patterns like [10:45:32]
-      const timestampMatch = line.match(/\[(\d{2}:\d{2}:\d{2})\]/);
-      
-      if (timestampMatch) {
-        const timestamp = timestampMatch[1];
-        const eventText = line.replace(/\[\d{2}:\d{2}:\d{2}\]/, '').trim();
-        
-        // Categorize events
-        let eventType = "info";
-        if (eventText.toLowerCase().includes("connected")) eventType = "connected";
-        if (eventText.toLowerCase().includes("disconnected")) eventType = "disconnected";
-        if (eventText.toLowerCase().includes("error")) eventType = "error";
-        if (eventText.toLowerCase().includes("waiting")) eventType = "waiting";
-        
-        events.push({
-          time: timestamp,
-          text: eventText,
-          type: eventType
-        });
-      }
-    });
-    
-    // If parsing failed to extract events, create some placeholder events
-    if (events.length === 0) {
-      // Extract time parts from the duration if available
-      const durationParts = metadata.duration.split(':');
-      const minutes = durationParts.length > 0 ? parseInt(durationParts[0]) : 0;
-      
-      events.push(
-        { time: "00:00:00", text: "Call initiated", type: "connected" },
-        { time: `00:0${Math.floor(minutes/3)}:00`, text: "Discussion of product features", type: "info" },
-        { time: `00:0${Math.floor(minutes*2/3)}:00`, text: "Support issue resolution", type: "info" },
-        { time: metadata.duration, text: "Call completed", type: "disconnected" }
-      );
-    }
-    
-    return events;
-  };
 
   if (loading) {
     return (
@@ -188,7 +192,25 @@ export default function ReportPage() {
           </TabsList>
 
           <TabsContent value="transcription" className="focus:outline-none">
-            <div className="space-y-6 pb-10">
+            <div className="space-y-6 pb-10" ref={transcriptionRef}>
+              {/* <div className="mb-6">
+                <h2 className="text-xl font-semibold">Call Transcription</h2>
+                <div className="flex items-center gap-4 text-sm text-muted-foreground mt-2">
+                  <div className="flex items-center gap-2">
+                    <CalendarIcon size={14} />
+                    <span>{metadata.date}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Clock size={14} />
+                    <span>{metadata.duration}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Phone size={14} />
+                    <span>{metadata.caller}</span>
+                  </div>
+                </div>
+              </div> */}
+              
               {formattedTranscription.map((segment) => (
                 <div 
                   key={segment.id} 
@@ -217,6 +239,15 @@ export default function ReportPage() {
                 </div>
               ))}
             </div>
+            <div className="flex justify-end mb-6">
+              <button 
+                onClick={exportTranscription}
+                className="flex items-center gap-2 text-sm text-primary hover:underline"
+              >
+                <ArrowDownCircle size={16} />
+                <span>Export Transcription</span>
+              </button>
+            </div>
           </TabsContent>
 
           <TabsContent value="chatbot" className="focus:outline-none">
@@ -227,31 +258,53 @@ export default function ReportPage() {
 
           <TabsContent value="calllog" className="focus:outline-none">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-[calc(100vh-280px)] min-h-[500px]">
-              {/* Call Timeline - Mac-inspired design */}
+              {/* Issue Summary - replaces Call Timeline */}
               <div className="col-span-2 bg-background rounded-lg border shadow-sm overflow-hidden">
                 <div className="bg-background border-b px-6 py-4 flex items-center justify-between">
-                  <h3 className="font-medium text-sm">Call Timeline</h3>
-                  <button className="text-xs text-primary hover:underline">Export</button>
+                  <h3 className="font-medium text-sm">Issue Summary</h3>
+                  <button 
+                    onClick={exportIssueSummary}
+                    className="text-xs text-primary hover:underline flex items-center gap-1"
+                  >
+                    <ArrowDownCircle size={14} />
+                    <span>Export</span>
+                  </button>
                 </div>
-                <div className="p-4 overflow-y-auto h-[calc(100%-56px)]">
-                  <div className="relative pl-8 pb-2">
-                    <div className="absolute left-3 top-1 bottom-0 w-px bg-border"></div>
-                    
-                    {metadata.callEvents.map((event, index) => (
-                      <div key={index} className="mb-6 relative">
-                        <div className={cn(
-                          "absolute left-[-25px] top-0 h-5 w-5 rounded-full flex items-center justify-center",
-                          event.type === "connected" ? "bg-green-100 text-green-600" : 
-                          event.type === "disconnected" ? "bg-red-100 text-red-600" :
-                          event.type === "error" ? "bg-amber-100 text-amber-600" :
-                          "bg-blue-100 text-blue-600"
-                        )}>
-                          <div className="h-2 w-2 rounded-full bg-current"></div>
-                        </div>
-                        <div className="text-xs font-medium text-muted-foreground mb-1">{event.time}</div>
-                        <div className="text-sm">{event.text}</div>
+                <div className="p-6 overflow-y-auto h-[calc(100%-56px)]" ref={issueSummaryRef}>
+                  <div className="text-sm leading-relaxed space-y-4">
+                    <h2 className="text-xl font-semibold mb-2">Call Issue Summary</h2>
+                    <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
+                      <div className="flex items-center gap-2">
+                        <CalendarIcon size={14} />
+                        <span>{metadata.date}</span>
                       </div>
-                    ))}
+                      <div className="flex items-center gap-2">
+                        <Clock size={14} />
+                        <span>{metadata.duration}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Phone size={14} />
+                        <span>{metadata.caller}</span>
+                      </div>
+                    </div>
+                    
+                    <div className="bg-muted/30 p-4 rounded-lg border border-muted">
+                      <p>{metadata.issueSummary}</p>
+                    </div>
+                    
+                    <div className="mt-6">
+                      <h4 className="text-sm font-medium mb-3">Key Points</h4>
+                      <ul className="space-y-2">
+                        {metadata.issueSummary.split('.').filter(sentence => sentence.trim().length > 10).map((point, index) => (
+                          <li key={index} className="flex items-start gap-2">
+                            <div className="h-5 w-5 rounded-full bg-primary/10 text-primary flex items-center justify-center flex-shrink-0 mt-0.5">
+                              <span className="text-xs">{index + 1}</span>
+                            </div>
+                            <p className="text-sm">{point.trim()}.</p>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -330,18 +383,20 @@ export default function ReportPage() {
                   </div>
                   <div className="p-4">
                     <div className="space-y-3">
-                      <div className="flex items-center gap-2 text-sm text-primary">
+                      <button 
+                        onClick={exportTranscription}
+                        className="flex items-center gap-2 text-sm text-primary w-full hover:underline"
+                      >
                         <ArrowDownCircle size={14} />
-                        <span className="hover:underline cursor-pointer">Download Audio</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-sm text-primary">
+                        <span>Export Transcript</span>
+                      </button>
+                      <button 
+                        onClick={exportIssueSummary}
+                        className="flex items-center gap-2 text-sm text-primary w-full hover:underline"
+                      >
                         <ArrowDownCircle size={14} />
-                        <span className="hover:underline cursor-pointer">Export Transcript</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-sm text-primary">
-                        <ArrowDownCircle size={14} />
-                        <span className="hover:underline cursor-pointer">Export Call Log</span>
-                      </div>
+                        <span>Export Issue Summary</span>
+                      </button>
                     </div>
                   </div>
                 </div>
