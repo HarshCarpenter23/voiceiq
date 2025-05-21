@@ -23,6 +23,8 @@ export default function ReportPage() {
     caller: "",
     issueSummary: ""
   })
+  const [sentiment, setSentiment] = useState();
+  const [callType, setCallType] = useState();
 
   const transcriptionRef = useRef<HTMLDivElement>(null)
   const issueSummaryRef = useRef<HTMLDivElement>(null)
@@ -34,7 +36,7 @@ export default function ReportPage() {
       const element = ref.current
       // Extract text content
       let content = element.innerText || element.textContent || ""
-      
+
       // Format the content with some basic structure
       const formattedContent = `
 ========================================
@@ -44,20 +46,20 @@ Generated on: ${new Date().toLocaleString()}
 
 ${content}
 `
-      
+
       // Create a blob with the text content
       const blob = new Blob([formattedContent], { type: 'text/plain' })
-      
+
       // Create a download link
       const url = URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = url
       link.download = `${fileName}.txt`
-      
+
       // Simulate click to trigger download
       document.body.appendChild(link)
       link.click()
-      
+
       // Clean up
       document.body.removeChild(link)
       URL.revokeObjectURL(url)
@@ -91,7 +93,9 @@ ${content}
 
         setTranscription(result.transcription || "No transcription available")
         setCalllog(result.call_log || "No call log available")
-        
+        setSentiment(result.caller_sentiment)
+        setCallType(result.request_type)
+
         // Extract metadata if available
         setMetadata({
           date: result.call_date || new Date().toLocaleDateString(),
@@ -149,7 +153,7 @@ ${content}
 
   return (
     <DashboardShell>
-      <div className="max-w-5xl w-full mx-auto px-4">
+      <div className=" mb-3 max-w-5xl w-full mx-auto px-4">
         {/* Call Metadata */}
         <div className="mb-8 mt-2">
           <h1 className="text-2xl font-light mb-4">Call Report</h1>
@@ -171,22 +175,22 @@ ${content}
 
         <Tabs defaultValue="transcription" className="w-full">
           <TabsList className="bg-muted/50 p-1 rounded-lg mb-8">
-            <TabsTrigger 
-              value="transcription" 
+            <TabsTrigger
+              value="transcription"
               className="flex items-center gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm"
             >
               <FileAudio size={16} />
               <span>Transcription</span>
             </TabsTrigger>
-            <TabsTrigger 
-              value="chatbot" 
+            <TabsTrigger
+              value="chatbot"
               className="flex items-center gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm"
             >
               <MessageCircle size={16} />
               <span>Chatbot</span>
             </TabsTrigger>
-            <TabsTrigger 
-              value="calllog" 
+            <TabsTrigger
+              value="calllog"
               className="data-[state=active]:bg-background data-[state=active]:shadow-sm flex items-center gap-2"
             >
               <Info size={16} />
@@ -213,10 +217,10 @@ ${content}
                   </div>
                 </div>
               </div> */}
-              
+
               {formattedTranscription.map((segment) => (
-                <div 
-                  key={segment.id} 
+                <div
+                  key={segment.id}
                   className={cn(
                     "flex gap-4",
                     segment.speaker === "Customer" ? "flex-row-reverse" : ""
@@ -230,8 +234,8 @@ ${content}
                   </div>
                   <div className={cn(
                     "max-w-[80%] py-3 px-4 rounded-2xl text-sm",
-                    segment.speaker === "Agent" 
-                      ? "bg-muted/50 text-foreground" 
+                    segment.speaker === "Agent"
+                      ? "bg-muted/50 text-foreground"
                       : "bg-muted text-foreground"
                   )}>
                     <p className="font-medium text-xs mb-1 text-muted-foreground">
@@ -243,7 +247,7 @@ ${content}
               ))}
             </div>
             <div className="flex justify-end mb-6">
-              <button 
+              <button
                 onClick={exportTranscription}
                 className="flex items-center gap-2 text-sm text-primary hover:underline"
               >
@@ -264,8 +268,8 @@ ${content}
               {/* Issue Summary - replaces Call Timeline */}
               <div className="col-span-2 bg-background rounded-lg border shadow-sm overflow-hidden">
                 <div className="bg-background border-b px-6 py-4 flex items-center justify-between">
-                  <h3 className="font-medium text-sm">Issue Summary</h3>
-                  <button 
+                  <h2 className="font-medium text-lg">Call Issue Summary</h2>
+                  <button
                     onClick={exportIssueSummary}
                     className="text-xs text-primary hover:underline flex items-center gap-1"
                   >
@@ -275,8 +279,8 @@ ${content}
                 </div>
                 <div className="p-6 overflow-y-auto h-[calc(100%-56px)]" ref={issueSummaryRef}>
                   <div className="text-sm leading-relaxed space-y-4">
-                    <h2 className="text-xl font-semibold mb-2">Call Issue Summary</h2>
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
+                    {/* <h2 className="text-xl font-semibold mb-2">Call Issue Summary</h2> */}
+                    {/* <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
                       <div className="flex items-center gap-2">
                         <CalendarIcon size={14} />
                         <span>{metadata.date}</span>
@@ -288,13 +292,13 @@ ${content}
                       <div className="flex items-center gap-2">
                         <Phone size={14} />
                         <span>{metadata.caller}</span>
-                      </div>
-                    </div>
-                    
+                      </div> */}
+                    {/* </div> */}
+
                     <div className="bg-muted/30 p-4 rounded-lg border border-muted">
                       <p>{metadata.issueSummary}</p>
                     </div>
-                    
+
                     <div className="mt-6">
                       <h4 className="text-sm font-medium mb-3">Key Points</h4>
                       <ul className="space-y-2">
@@ -322,7 +326,7 @@ ${content}
                     <div className="space-y-4">
                       <div>
                         <p className="text-xs text-muted-foreground mb-1">Call Type</p>
-                        <p className="text-sm font-medium">Customer Support</p>
+                        <p className="text-sm font-medium">{callType.charAt(0).toUpperCase() + callType.slice(1)}</p>
                       </div>
                       <div>
                         <p className="text-xs text-muted-foreground mb-1">Call Result</p>
@@ -342,14 +346,14 @@ ${content}
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="bg-background rounded-lg border shadow-sm overflow-hidden">
                   <div className="bg-background border-b px-4 py-3">
                     <h3 className="font-medium text-sm">Audio Analysis</h3>
                   </div>
                   <div className="p-4">
                     <div className="space-y-3">
-                      <div>
+                      {/* <div>
                         <div className="flex justify-between text-xs mb-1">
                           <span className="text-muted-foreground">Agent Talk Time</span>
                           <span className="font-medium">65%</span>
@@ -366,34 +370,52 @@ ${content}
                         <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
                           <div className="h-full bg-blue-500 rounded-full" style={{ width: '35%' }}></div>
                         </div>
-                      </div>
+                      </div> */}
                       <div>
                         <div className="flex justify-between text-xs mb-1">
                           <span className="text-muted-foreground">Sentiment</span>
-                          <span className="font-medium">Positive</span>
+                          <span className="font-2xl">
+                            {sentiment === 'happy' && '😊'}
+                            {sentiment === 'frustrated' && '😐'}
+                            {sentiment === 'angry' && '😠'}
+                            {sentiment === '' && '❓'} {/* fallback if sentiment is empty */}
+                            &nbsp;{sentiment?.charAt(0).toUpperCase() + sentiment?.slice(1)}
+                          </span>
                         </div>
-                        <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
-                          <div className="h-full bg-green-500 rounded-full" style={{ width: '75%' }}></div>
-                        </div>
+                        {/* <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
+                          <div
+                            className={`h-full rounded-full ${sentiment === 'happy'
+                                ? 'bg-green-500'
+                                : sentiment === 'frustrated'
+                                  ? 'bg-yellow-500'
+                                  : sentiment === 'angry'
+                                    ? 'bg-red-500'
+                                    : 'bg-white'
+                              }`}
+                            style={{ width: '75%' }} // Replace with dynamic width if needed
+                          ></div>
+                        </div> */}
                       </div>
+
+
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="bg-background rounded-lg border shadow-sm overflow-hidden">
                   <div className="bg-background border-b px-4 py-3">
                     <h3 className="font-medium text-sm">Resources</h3>
                   </div>
                   <div className="p-4">
                     <div className="space-y-3">
-                      <button 
+                      <button
                         onClick={exportTranscription}
                         className="flex items-center gap-2 text-sm text-primary w-full hover:underline"
                       >
                         <ArrowDownCircle size={14} />
                         <span>Export Transcript as Text</span>
                       </button>
-                      <button 
+                      <button
                         onClick={exportIssueSummary}
                         className="flex items-center gap-2 text-sm text-primary w-full hover:underline"
                       >

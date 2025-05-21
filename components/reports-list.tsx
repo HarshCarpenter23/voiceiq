@@ -14,6 +14,10 @@ import {
   ChevronRight, 
   Filter,
   Calendar,
+  Phone,
+  AudioLines,
+  Play,
+  ArrowRightLeft,
   ArrowDownUp,
   Eye
 } from "lucide-react"
@@ -272,6 +276,8 @@ export function ReportsList() {
     }
   }
 
+  
+
   // Get current reports for pagination
   const indexOfLastReport = currentPage * reportsPerPage;
   const indexOfFirstReport = indexOfLastReport - reportsPerPage;
@@ -284,15 +290,15 @@ export function ReportsList() {
   return (
     <div className="relative overflow-hidden">
       {/* Decorative blobs */}
-      <Blob className="bg-blue-300 w-64 h-64 -top-20 -left-20" />
-      <Blob className="bg-purple-300 w-72 h-72 -bottom-20 -right-20" />
+      <Blob className=" w-64 h-64 -top-20 -left-20" />
+      <Blob className=" w-72 h-72 -bottom-20 -right-20" />
       
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
-        <Card className="backdrop-blur-sm bg-white/90 dark:bg-gray-900/90 border border-gray-100 dark:border-gray-800 shadow-xl rounded-2xl">
+        <Card className="backdrop-blur-sm bg-white/90 dark:bg-black border border-gray-100 dark:border-gray-800 shadow-xl rounded-2xl">
           <CardHeader className="border-b border-gray-100 dark:border-gray-800">
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
               <motion.div
@@ -348,12 +354,46 @@ export function ReportsList() {
                   exit={{ height: 0, opacity: 0 }}
                   transition={{ duration: 0.3 }}
                   className="overflow-hidden"
-                >
+                  >
+                  <div className="mt-2">
+                    <p className="text-sm font-medium mb-1 text-gray-500">Sort By</p>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant={sortConfig.key === 'created_at' ? "default" : "outline"}
+                        className={`rounded-full text-xs ${
+                          sortConfig.key === 'created_at' 
+                            ? "bg-gradient-to-r from-blue-500 to-purple-500" 
+                            : "hover:bg-gray-100 dark:hover:bg-gray-800"
+                        }`}
+                        onClick={() => requestSort('created_at')}
+                      >
+                        Date {sortConfig.key === 'created_at' && (
+                          sortConfig.direction === 'asc' ? '↑' : '↓'
+                        )}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant={sortConfig.key === 'caller_name' ? "default" : "outline"}
+                        className={`rounded-full text-xs ${
+                          sortConfig.key === 'caller_name' 
+                            ? "bg-gradient-to-r from-blue-500 to-purple-500" 
+                            : "hover:bg-gray-100 dark:hover:bg-gray-800"
+                        }`}
+                        onClick={() => requestSort('caller_name')}
+                      >
+                        Name {sortConfig.key === 'caller_name' && (
+                          sortConfig.direction === 'asc' ? '↑' : '↓'
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+
                   <div className="pt-4 flex flex-wrap gap-3">
                     <div>
                       <p className="text-sm font-medium mb-1 text-gray-500">Sentiment Filter</p>
                       <div className="flex gap-2">
-                        {["all", "positive", "neutral", "negative"].map((sentiment) => (
+                        {["all", "angry", "happy", "frustrated"].map((sentiment) => (
                           <Button
                             key={sentiment}
                             size="sm"
@@ -371,39 +411,6 @@ export function ReportsList() {
                       </div>
                     </div>
                     
-                    <div>
-                      <p className="text-sm font-medium mb-1 text-gray-500">Sort By</p>
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          variant={sortConfig.key === 'created_at' ? "default" : "outline"}
-                          className={`rounded-full text-xs ${
-                            sortConfig.key === 'created_at' 
-                              ? "bg-gradient-to-r from-blue-500 to-purple-500" 
-                              : "hover:bg-gray-100 dark:hover:bg-gray-800"
-                          }`}
-                          onClick={() => requestSort('created_at')}
-                        >
-                          Date {sortConfig.key === 'created_at' && (
-                            sortConfig.direction === 'asc' ? '↑' : '↓'
-                          )}
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant={sortConfig.key === 'caller_name' ? "default" : "outline"}
-                          className={`rounded-full text-xs ${
-                            sortConfig.key === 'caller_name' 
-                              ? "bg-gradient-to-r from-blue-500 to-purple-500" 
-                              : "hover:bg-gray-100 dark:hover:bg-gray-800"
-                          }`}
-                          onClick={() => requestSort('caller_name')}
-                        >
-                          Name {sortConfig.key === 'caller_name' && (
-                            sortConfig.direction === 'asc' ? '↑' : '↓'
-                          )}
-                        </Button>
-                      </div>
-                    </div>
                   </div>
                 </motion.div>
               )}
@@ -415,20 +422,40 @@ export function ReportsList() {
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
-                    <TableRow className="bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                      <TableHead className="font-medium">Caller Name</TableHead>
-                      <TableHead className="font-medium">Request Type</TableHead>
-                      <TableHead className="font-medium">
+                    <TableRow className="bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-50 dark:hover:bg-gray-800/50 text-lg">
+                      <TableHead className="font-semibold">
+                      <div className="flex items-center gap-1">
+                          <Phone className="h-4.5 w-3.5" />
+                          <span>Caller Name</span>
+                        </div>
+                      </TableHead>
+                      <TableHead className="font-semibold">
+                      <div className="flex items-center gap-1">
+                          <ArrowRightLeft className="h-4.5 w-3.5" />
+                          <span>Request Type</span>
+                        </div>
+                      </TableHead>
+                      <TableHead className="font-semibold">
                         <div className="flex items-center gap-1">
-                          <Calendar className="h-3.5 w-3.5" />
+                          <Calendar className="h-4.5 w-3.5" />
                           <span>Date</span>
                         </div>
                       </TableHead>
-                      <TableHead className="font-medium">Sentiment</TableHead>
-                      <TableHead className="text-right font-medium">Actions</TableHead>
+                      <TableHead className="font-semibold">
+                      <div className="flex items-center gap-1">
+                          <AudioLines className="h-4.5 w-3.5" />
+                          <span>Sentiment</span>
+                        </div>
+                        </TableHead>
+                      <TableHead className=" font-semibold">
+                        <div className="flex justify-center items-center gap-1">
+                          <Play className="h-4.5 w-3.5" />
+                          <span>Actions</span>
+                        </div>
+                      </TableHead>
                     </TableRow>
                   </TableHeader>
-                  <TableBody>
+                  <TableBody className="text-[0.9rem]">
                     {loading ? (
                       <TableRow>
                         <TableCell colSpan={5} className="h-32">
@@ -469,12 +496,12 @@ export function ReportsList() {
                         return (
                           <TableRow 
                             key={report.id}
-                            className="group hover:bg-gray-50/50 dark:hover:bg-gray-800/20 transition-all duration-200"
+                            className="group hover:bg-gray-50/50 dark:hover:bg-gray-800/20 transition-all duration-200 text-[0.9rem]"
                           >
                             <TableCell>
                               <Button 
                                 variant="ghost"
-                                className="px-0 font-medium text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors duration-200"
+                                className="px-0 font-medium text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors duration-200 text-[1.1rem]"
                                 onClick={() => {
                                   setSelectedReport(report)
                                   router.push(`/reports/${report.id}`)
@@ -484,7 +511,7 @@ export function ReportsList() {
                               </Button>
                             </TableCell>
                             <TableCell className="text-gray-600 dark:text-gray-300">
-                              {report.request_type || "N/A"}
+                              {report.request_type?.charAt(0).toUpperCase() + report.request_type?.slice(1) || "N/A"}
                             </TableCell>
                             <TableCell className="text-gray-600 dark:text-gray-300">
                               {formatDateTime(report.created_at) || "N/A"}
@@ -501,11 +528,11 @@ export function ReportsList() {
                                         : "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300"
                                 }`}
                               >
-                                {report.caller_sentiment || "Unknown"}
+                                {report.caller_sentiment?.charAt(0).toUpperCase() + report.caller_sentiment?.slice(1) || "Unknown"}
                               </span>
                             </TableCell>
-                            <TableCell className="text-right">
-                              <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                            <TableCell className="text-center">
+                              <div className="flex justify-center gap-1 transition-opacity duration-200">
                                 <Button
                                   variant="ghost"
                                   size="icon"

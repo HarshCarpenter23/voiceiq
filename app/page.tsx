@@ -133,12 +133,14 @@ export default function DashboardPage() {
         </motion.div>
 
         <div className="mb-20">
-          <h2
-            // initial={{ opacity: 0 }}
+          <motion.h2
+            initial={{ opacity: 0 }}
+            animate={{ opacity: mounted ? 1 : 0 }}
+            transition={{ duration: 0.8, delay: 0.8 }}
             className="text-2xl font-semibold mb-10 text-center"
           >
             Premium Features
-          </h2>
+          </motion.h2>
 
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             <FeatureCard icon={Mic} title="High Quality Transcription" description="Achieve up to 95% accuracy with our industry-leading AI transcription engine." delay={0.9} />

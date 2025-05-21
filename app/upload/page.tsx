@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { DashboardHeader } from "@/components/dashboard-header";
 import { DashboardShell } from "@/components/dashboard-shell";
 import { AudioUploader } from "@/components/audio-uploader";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast"
 import { Progress } from "@/components/ui/progress";
 import { Loader2 } from "lucide-react";
 
@@ -94,8 +94,10 @@ export default function UploadPage() {
       // Handle successful upload
       toast({
         title: "Upload Successful",
-        description: `"${file.name}" - ${data.message || "The audio file has been processed successfully."}`,
+        description: `"${file.name}" -  "The audio file has been processed successfully."`,
       });
+
+      // alert("Uploaded")
 
       // Reset for next file
       setCurrentFile(null);
