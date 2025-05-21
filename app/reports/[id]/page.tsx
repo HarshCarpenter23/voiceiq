@@ -7,8 +7,9 @@ import ChatBox from "@/components/chat-box"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { CalendarIcon, FileAudio, MessageCircle, Clock, Phone, Info, ArrowDownCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
-import * as htmlToImage from 'html-to-image' // Fixed import
-import { jsPDF } from "jspdf"
+// Removing problematic imports
+// import * as htmlToImage from 'html-to-image'
+// import { jsPDF } from "jspdf"
 
 export default function ReportPage() {
   const params = useParams()
@@ -26,53 +27,55 @@ export default function ReportPage() {
   const transcriptionRef = useRef<HTMLDivElement>(null)
   const issueSummaryRef = useRef<HTMLDivElement>(null)
 
-  const exportToPdf = async (ref: React.RefObject<HTMLDivElement>, fileName: string) => {
+  const exportAsText = (ref: React.RefObject<HTMLDivElement>, fileName: string) => {
     if (!ref.current) return
 
     try {
       const element = ref.current
-      // Fixed method call
-      const dataUrl = await htmlToImage.toPng(element)
+      // Extract text content
+      let content = element.innerText || element.textContent || ""
+      
+      // Format the content with some basic structure
+      const formattedContent = `
+========================================
+VOICEIQ REPORT - ${fileName}
+Generated on: ${new Date().toLocaleString()}
+========================================
 
-      const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm'
-      })
-
-      // Get the dimensions of the PDF page
-      const pageWidth = pdf.internal.pageSize.getWidth()
-      const pageHeight = pdf.internal.pageSize.getHeight()
-
-      // Calculate the dimensions of the image to fit the page
-      const imgProps = pdf.getImageProperties(dataUrl)
-      const imgWidth = pageWidth - 20 // 10mm margin on each side
-      const imgHeight = (imgProps.height * imgWidth) / imgProps.width
-
-      // Add the image to the PDF
-      pdf.addImage(dataUrl, 'PNG', 10, 10, imgWidth, imgHeight)
-
-      // Add metadata to the PDF
-      pdf.setFontSize(10)
-      pdf.setTextColor(150)
-      pdf.text(`Exported from VoiceIQ - ${new Date().toLocaleString()}`, 10, pageHeight - 10)
-
-      // Save the PDF
-      pdf.save(`${fileName}.pdf`)
+${content}
+`
+      
+      // Create a blob with the text content
+      const blob = new Blob([formattedContent], { type: 'text/plain' })
+      
+      // Create a download link
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `${fileName}.txt`
+      
+      // Simulate click to trigger download
+      document.body.appendChild(link)
+      link.click()
+      
+      // Clean up
+      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
     } catch (error) {
-      console.error('Error generating PDF:', error)
-      alert('Failed to generate PDF. Please try again.')
+      console.error('Error exporting text:', error)
+      alert('Failed to export text. Please try again.')
     }
   }
 
   const exportTranscription = () => {
     if (transcriptionRef.current) {
-      exportToPdf(transcriptionRef, `transcription-${params.id}`)
+      exportAsText(transcriptionRef, `transcription-${params.id}`)
     }
   }
 
   const exportIssueSummary = () => {
     if (issueSummaryRef.current) {
-      exportToPdf(issueSummaryRef, `issue-summary-${params.id}`)
+      exportAsText(issueSummaryRef, `issue-summary-${params.id}`)
     }
   }
 
@@ -267,7 +270,7 @@ export default function ReportPage() {
                     className="text-xs text-primary hover:underline flex items-center gap-1"
                   >
                     <ArrowDownCircle size={14} />
-                    <span>Export</span>
+                    <span>Export as Text</span>
                   </button>
                 </div>
                 <div className="p-6 overflow-y-auto h-[calc(100%-56px)]" ref={issueSummaryRef}>
@@ -388,14 +391,14 @@ export default function ReportPage() {
                         className="flex items-center gap-2 text-sm text-primary w-full hover:underline"
                       >
                         <ArrowDownCircle size={14} />
-                        <span>Export Transcript</span>
+                        <span>Export Transcript as Text</span>
                       </button>
                       <button 
                         onClick={exportIssueSummary}
                         className="flex items-center gap-2 text-sm text-primary w-full hover:underline"
                       >
                         <ArrowDownCircle size={14} />
-                        <span>Export Issue Summary</span>
+                        <span>Export Issue Summary as Text</span>
                       </button>
                     </div>
                   </div>
