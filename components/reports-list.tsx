@@ -18,7 +18,6 @@ import {
   AudioLines,
   Play,
   ArrowRightLeft,
-  ArrowDownUp,
   Eye
 } from "lucide-react"
 import { jsPDF } from "jspdf"
@@ -26,24 +25,18 @@ import "jspdf-autotable"
 import { serialize } from 'next-mdx-remote/serialize'
 import { useReportStore } from "@/store/reportStore"
 import { useRouter } from "next/navigation"
+import { DateTime } from 'luxon';
 
-function formatDateTime(isoInput: any) {
-  // Trim microseconds to 3 digits and convert to valid ISO format for JS
-  const trimmed = isoInput.replace(/(\.\d{3})\d+/, '$1').replace('+00:00', 'Z');
-  const date = new Date(trimmed);
+function convertUTCToLocalLuxon(utcTimeString: string) {
+  const userTimeZone = DateTime.local().zoneName;
 
-  const day = String(date.getUTCDate()).padStart(2, '0');
-  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
-  const year = date.getUTCFullYear();
-
-  let hours = date.getUTCHours();
-  const minutes = String(date.getUTCMinutes()).padStart(2, '0');
-  const ampm = hours >= 12 ? 'PM' : 'AM';
-  hours = hours % 12 || 12;
-  const hourStr = String(hours).padStart(2, '0');
-
-  return `${day}/${month}/${year} at ${hourStr}:${minutes} ${ampm}`;
+  return DateTime
+    .fromISO(utcTimeString, { zone: 'utc' })
+    .setZone(userTimeZone)
+    .toFormat('yyyy-LL-dd HH:mm:ss');
 }
+
+
 
 export function ReportsList() {
   const [searchQuery, setSearchQuery] = useState("")
@@ -59,7 +52,7 @@ export function ReportsList() {
   const { setSelectedReport } = useReportStore()
 
   // Blob shape decorations
-  const Blob = ({ className }) => (
+  const Blob = ({ className }: any) => (
     <div className={`absolute blur-3xl opacity-20 rounded-full mix-blend-multiply ${className}`}></div>
   )
 
@@ -88,7 +81,7 @@ export function ReportsList() {
   }, [])
 
   // Parse markdown using MDX serializer
-  const parseMarkdownWithMDX = async (markdown) => {
+  const parseMarkdownWithMDX = async (markdown: any) => {
     if (!markdown) return { title: "", mdxSource: null };
 
     // Extract title (assuming first line is title)
@@ -112,7 +105,7 @@ export function ReportsList() {
     }
   }
 
-  const generatePDF = async (report) => {
+  const generatePDF = async (report: any) => {
     // Initialize PDF document
     const doc = new jsPDF();
 
@@ -224,7 +217,7 @@ export function ReportsList() {
   }
 
   // Sorting function
-  const requestSort = (key) => {
+  const requestSort = (key: any) => {
     let direction = 'asc';
     if (sortConfig.key === key && sortConfig.direction === 'asc') {
       direction = 'desc';
@@ -245,7 +238,7 @@ export function ReportsList() {
 
   // Apply filters
   const filteredReports = sortedReports.filter(
-    (report) => {
+    (report: any) => {
       // Search filter
       const matchesSearch =
         report.caller_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -261,7 +254,7 @@ export function ReportsList() {
   );
 
   // Function to determine sentiment color
-  const getSentimentColor = (sentiment) => {
+  const getSentimentColor = (sentiment: any) => {
     if (!sentiment) return "gray";
 
     const lowerSentiment = sentiment.toLowerCase();
@@ -285,7 +278,7 @@ export function ReportsList() {
   const totalPages = Math.ceil(filteredReports.length / reportsPerPage);
 
   // Change page
-  const paginate = (pageNumber) => setCurrentPage(pageNumber);
+  const paginate = (pageNumber: any) => setCurrentPage(pageNumber);
 
   return (
     <div className="relative overflow-hidden">
@@ -365,8 +358,8 @@ export function ReportsList() {
                             size="sm"
                             variant={selectedSentiment === sentiment ? "default" : "outline"}
                             className={`rounded-full text-xs capitalize ${selectedSentiment === sentiment
-                                ? "bg-gradient-to-r from-blue-500 to-purple-500"
-                                : "hover:bg-gray-100 dark:hover:bg-gray-800"
+                              ? "bg-gradient-to-r from-blue-500 to-purple-500"
+                              : "hover:bg-gray-100 dark:hover:bg-gray-800"
                               }`}
                             onClick={() => setSelectedSentiment(sentiment)}
                           >
@@ -383,8 +376,8 @@ export function ReportsList() {
                           size="sm"
                           variant={sortConfig.key === 'created_at' ? "default" : "outline"}
                           className={`rounded-full text-xs ${sortConfig.key === 'created_at'
-                              ? "bg-gradient-to-r from-blue-500 to-purple-500"
-                              : "hover:bg-gray-100 dark:hover:bg-gray-800"
+                            ? "bg-gradient-to-r from-blue-500 to-purple-500"
+                            : "hover:bg-gray-100 dark:hover:bg-gray-800"
                             }`}
                           onClick={() => requestSort('created_at')}
                         >
@@ -396,8 +389,8 @@ export function ReportsList() {
                           size="sm"
                           variant={sortConfig.key === 'caller_name' ? "default" : "outline"}
                           className={`rounded-full text-xs ${sortConfig.key === 'caller_name'
-                              ? "bg-gradient-to-r from-blue-500 to-purple-500"
-                              : "hover:bg-gray-100 dark:hover:bg-gray-800"
+                            ? "bg-gradient-to-r from-blue-500 to-purple-500"
+                            : "hover:bg-gray-100 dark:hover:bg-gray-800"
                             }`}
                           onClick={() => requestSort('caller_name')}
                         >
@@ -486,7 +479,7 @@ export function ReportsList() {
                         </TableCell>
                       </TableRow>
                     ) : (
-                      currentReports.map((report, index) => {
+                      currentReports.map((report: any, index) => {
                         const sentimentColor = getSentimentColor(report.caller_sentiment);
 
                         return (
@@ -510,7 +503,7 @@ export function ReportsList() {
                               {report.request_type?.charAt(0).toUpperCase() + report.request_type?.slice(1) || "N/A"}
                             </TableCell>
                             <TableCell className="text-gray-600 dark:text-gray-300">
-                              {formatDateTime(report.created_at) || "N/A"}
+                              {convertUTCToLocalLuxon(report.created_at) || "N/A"}
                             </TableCell>
                             <TableCell>
                               <span
