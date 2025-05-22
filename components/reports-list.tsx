@@ -6,12 +6,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { 
-  Download, 
-  FileText, 
-  Search, 
-  ChevronLeft, 
-  ChevronRight, 
+import {
+  Download,
+  FileText,
+  Search,
+  ChevronLeft,
+  ChevronRight,
   Filter,
   Calendar,
   ArrowDownUp,
@@ -23,7 +23,7 @@ import { serialize } from 'next-mdx-remote/serialize'
 import { useReportStore } from "@/store/reportStore"
 import { useRouter } from "next/navigation"
 
-function formatDateTime(isoInput) {
+function formatDateTime(isoInput: any) {
   // Trim microseconds to 3 digits and convert to valid ISO format for JS
   const trimmed = isoInput.replace(/(\.\d{3})\d+/, '$1').replace('+00:00', 'Z');
   const date = new Date(trimmed);
@@ -243,15 +243,15 @@ export function ReportsList() {
   const filteredReports = sortedReports.filter(
     (report) => {
       // Search filter
-      const matchesSearch = 
+      const matchesSearch =
         report.caller_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         report.request_type?.toLowerCase().includes(searchQuery.toLowerCase());
-      
+
       // Sentiment filter
-      const matchesSentiment = 
-        selectedSentiment === "all" || 
+      const matchesSentiment =
+        selectedSentiment === "all" ||
         (report.caller_sentiment?.toLowerCase().includes(selectedSentiment.toLowerCase()));
-      
+
       return matchesSearch && matchesSentiment;
     }
   );
@@ -286,7 +286,7 @@ export function ReportsList() {
       {/* Decorative blobs */}
       <Blob className="bg-blue-300 w-64 h-64 -top-20 -left-20" />
       <Blob className="bg-purple-300 w-72 h-72 -bottom-20 -right-20" />
-      
+
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -305,9 +305,9 @@ export function ReportsList() {
                   A list of all your generated reports
                 </CardDescription>
               </motion.div>
-              
+
               <div className="flex flex-col md:flex-row gap-2 w-full md:w-auto">
-                <motion.div 
+                <motion.div
                   className="relative w-full md:w-64"
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
@@ -321,7 +321,7 @@ export function ReportsList() {
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
                 </motion.div>
-                
+
                 <motion.div
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
@@ -338,11 +338,11 @@ export function ReportsList() {
                 </motion.div>
               </div>
             </div>
-            
+
             {/* Filters Panel */}
             <AnimatePresence>
               {isFilterVisible && (
-                <motion.div 
+                <motion.div
                   initial={{ height: 0, opacity: 0 }}
                   animate={{ height: "auto", opacity: 1 }}
                   exit={{ height: 0, opacity: 0 }}
@@ -358,11 +358,10 @@ export function ReportsList() {
                             key={sentiment}
                             size="sm"
                             variant={selectedSentiment === sentiment ? "default" : "outline"}
-                            className={`rounded-full text-xs capitalize ${
-                              selectedSentiment === sentiment 
-                                ? "bg-gradient-to-r from-blue-500 to-purple-500" 
+                            className={`rounded-full text-xs capitalize ${selectedSentiment === sentiment
+                                ? "bg-gradient-to-r from-blue-500 to-purple-500"
                                 : "hover:bg-gray-100 dark:hover:bg-gray-800"
-                            }`}
+                              }`}
                             onClick={() => setSelectedSentiment(sentiment)}
                           >
                             {sentiment}
@@ -370,18 +369,17 @@ export function ReportsList() {
                         ))}
                       </div>
                     </div>
-                    
+
                     <div>
                       <p className="text-sm font-medium mb-1 text-gray-500">Sort By</p>
                       <div className="flex gap-2">
                         <Button
                           size="sm"
                           variant={sortConfig.key === 'created_at' ? "default" : "outline"}
-                          className={`rounded-full text-xs ${
-                            sortConfig.key === 'created_at' 
-                              ? "bg-gradient-to-r from-blue-500 to-purple-500" 
+                          className={`rounded-full text-xs ${sortConfig.key === 'created_at'
+                              ? "bg-gradient-to-r from-blue-500 to-purple-500"
                               : "hover:bg-gray-100 dark:hover:bg-gray-800"
-                          }`}
+                            }`}
                           onClick={() => requestSort('created_at')}
                         >
                           Date {sortConfig.key === 'created_at' && (
@@ -391,11 +389,10 @@ export function ReportsList() {
                         <Button
                           size="sm"
                           variant={sortConfig.key === 'caller_name' ? "default" : "outline"}
-                          className={`rounded-full text-xs ${
-                            sortConfig.key === 'caller_name' 
-                              ? "bg-gradient-to-r from-blue-500 to-purple-500" 
+                          className={`rounded-full text-xs ${sortConfig.key === 'caller_name'
+                              ? "bg-gradient-to-r from-blue-500 to-purple-500"
                               : "hover:bg-gray-100 dark:hover:bg-gray-800"
-                          }`}
+                            }`}
                           onClick={() => requestSort('caller_name')}
                         >
                           Name {sortConfig.key === 'caller_name' && (
@@ -409,7 +406,7 @@ export function ReportsList() {
               )}
             </AnimatePresence>
           </CardHeader>
-          
+
           <CardContent className="p-0">
             <div className="overflow-hidden">
               <div className="overflow-x-auto">
@@ -465,14 +462,14 @@ export function ReportsList() {
                     ) : (
                       currentReports.map((report, index) => {
                         const sentimentColor = getSentimentColor(report.caller_sentiment);
-                        
+
                         return (
-                          <TableRow 
+                          <TableRow
                             key={report.id}
                             className="group hover:bg-gray-50/50 dark:hover:bg-gray-800/20 transition-all duration-200"
                           >
                             <TableCell>
-                              <Button 
+                              <Button
                                 variant="ghost"
                                 className="px-0 font-medium text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors duration-200"
                                 onClick={() => {
@@ -491,15 +488,14 @@ export function ReportsList() {
                             </TableCell>
                             <TableCell>
                               <span
-                                className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium transition-all duration-200 ${
-                                  sentimentColor === "green"
+                                className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium transition-all duration-200 ${sentimentColor === "green"
                                     ? "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300"
                                     : sentimentColor === "red"
                                       ? "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300"
                                       : sentimentColor === "blue"
                                         ? "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300"
                                         : "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300"
-                                }`}
+                                  }`}
                               >
                                 {report.caller_sentiment || "Unknown"}
                               </span>
@@ -537,7 +533,7 @@ export function ReportsList() {
                 </Table>
               </div>
             </div>
-            
+
             {/* Pagination */}
             {!loading && !error && filteredReports.length > 0 && (
               <div className="px-4 py-4 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between">
@@ -563,9 +559,8 @@ export function ReportsList() {
                       key={i}
                       variant={currentPage === i + 1 ? "default" : "outline"}
                       size="icon"
-                      className={`h-8 w-8 rounded-full ${
-                        currentPage === i + 1 ? "bg-gradient-to-r from-blue-500 to-purple-500" : ""
-                      }`}
+                      className={`h-8 w-8 rounded-full ${currentPage === i + 1 ? "bg-gradient-to-r from-blue-500 to-purple-500" : ""
+                        }`}
                       onClick={() => paginate(i + 1)}
                     >
                       {i + 1}
