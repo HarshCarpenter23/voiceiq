@@ -42,7 +42,7 @@ export function DashboardSidebar() {
   ]
   
   useEffect(() => {
-    if (pathname === "/login") {
+    if (pathname === "/login" || pathname === "/") {
       setLogin(true)
     } else {
       setLogin(false)

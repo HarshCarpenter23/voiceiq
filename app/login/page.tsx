@@ -17,6 +17,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2 } from "lucide-react";
 
 import { X } from "lucide-react";
+import VoiceIQLanding from '@/components/dashInfo'
 
 const AbstractBackground = () => (
     <div className="fixed inset-0 z-[-1] overflow-hidden">
@@ -306,6 +307,7 @@ export default function DashboardPage() {
                     </div>
                 </div>
             )}
+            <VoiceIQLanding />
         </div>
     )
 }
