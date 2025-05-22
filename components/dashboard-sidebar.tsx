@@ -1,7 +1,7 @@
 "use client"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { FileText, Home, Upload, LogOut, Settings, Headphones, BarChart2 } from "lucide-react"
+import { FileText, Home, Upload, LogOut, Settings, Headphones, BarChart2, ChevronRight } from "lucide-react"
 import {
   Sidebar,
   SidebarContent,
@@ -16,6 +16,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { ModeToggle } from "@/components/mode-toggle"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { Badge } from "@/components/ui/badge"
 import { useEffect, useState } from "react"
 import { Separator } from "@/components/ui/separator"
 import { cn } from "@/lib/utils"
@@ -27,16 +28,17 @@ export function DashboardSidebar() {
   const [userName, setUserName] = useState("User")
   const [userEmail, setUserEmail] = useState("john@example.com")
   const [imageUrl, setImageUrl] = useState("")
+  const [collapsed, setCollapsed] = useState(false)
   
   const mainRoutes = [
-    { title: "Dashboard", icon: Home, href: "/" },
-    { title: "Reports", icon: FileText, href: "/reports" },
-    { title: "Analytics", icon: BarChart2, href: "/analytics" },
-    { title: "Upload", icon: Upload, href: "/upload" }
+    // { title: "Dashboard", icon: Home, href: "/", badge: null },
+    { title: "Reports", icon: FileText, href: "/reports", badge: null },
+    { title: "Upload", icon: Upload, href: "/upload", badge: null }
   ]
   
   const utilityRoutes = [
-    { title: "Settings", icon: Settings, href: "/settings" }
+    { title: "Analytics", icon: BarChart2, href: "/analytics", badge: null },
+    { title: "Settings", icon: Settings, href: "/settings", badge: null }
   ]
   
   useEffect(() => {
@@ -84,104 +86,219 @@ export function DashboardSidebar() {
     return name.length > 15 ? name.substring(0, 15) + '...' : name;
   }
 
+  const toggleCollapse = () => {
+    setCollapsed(!collapsed);
+  }
+
   return (
-    <Sidebar className="w-[240px] bg-background border-r border-border">
-      <SidebarHeader className="border-b border-border/40">
-        <div className="flex h-16 items-center px-5">
-          <Link href="/" className="flex items-center gap-2 font-medium">
-            <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 text-white">
-              <Headphones className="h-4 w-4" />
+    <Sidebar className={cn(
+      "transition-all duration-300 ease-in-out",
+      collapsed ? "w-20" : "w-64",
+      "bg-background/60 backdrop-blur-xl border-r border-white/10 shadow-lg",
+      "dark:bg-black/40 dark:border-white/5"
+    )}>
+      <SidebarHeader className="border-b border-white/10 dark:border-white/5">
+        <div className="flex h-16 items-center px-5 justify-between">
+          <Link href="/" className={cn(
+            "flex items-center gap-2 font-medium transition-opacity",
+            collapsed && "justify-center"
+          )}>
+            <div className="flex items-center justify-center h-10 w-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-md shadow-blue-500/20">
+              <Headphones className="h-5 w-5" />
             </div>
-            <span className="text-lg tracking-tight">VoiceIQ</span>
+            {!collapsed && <span className="text-3xl tracking-tight font-semibold bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-indigo-500">&nbsp;VoiceIQ</span>}
           </Link>
+          
+          <Button 
+            variant="ghost" 
+            size="icon"
+            onClick={toggleCollapse}
+            className="rounded-full h-8 w-8 hover:bg-white/10 dark:hover:bg-white/5"
+          >
+            <ChevronRight className={cn(
+              "h-4 w-4 text-muted-foreground transition-transform",
+              collapsed ? "rotate-180" : "rotate-0"
+            )} />
+          </Button>
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="py-2">
-        <div className="px-3 py-2">
-          <p className="text-xs font-medium text-muted-foreground/70 px-2 py-1.5">MAIN</p>
+      <SidebarContent className="py-4">
+        <div className={cn(
+          "px-3 py-2",
+          collapsed && "px-2"
+        )}>
+          {!collapsed && <p className="text-xs font-medium text-muted-foreground/70 px-2 py-1.5 ml-1">MAIN</p>}
           <SidebarMenu>
             {mainRoutes.map((route) => (
               <SidebarMenuItem key={route.href}>
-                <SidebarMenuButton asChild 
-                  className={cn(
-                    "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-                    pathname === route.href 
-                      ? "bg-accent text-accent-foreground" 
-                      : "text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground"
-                  )}
-                >
-                  <Link href={route.href} className="flex items-center gap-3 w-full">
-                    <route.icon className="h-4 w-4 flex-shrink-0" />
-                    <span>{route.title}</span>
-                    
-                  </Link>
-                </SidebarMenuButton>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <SidebarMenuButton asChild 
+                        className={cn(
+                          "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all",
+                          pathname === route.href 
+                            ? "bg-gradient-to-r from-blue-500/10 to-indigo-500/10 text-blue-500 dark:text-blue-400 border-l-2 border-blue-500" 
+                            : "text-muted-foreground hover:bg-white/5 hover:text-foreground",
+                          collapsed && "justify-center px-0"
+                        )}
+                      >
+                        <Link href={route.href} className={cn(
+                          "flex items-center gap-3 w-full",
+                          collapsed && "justify-center"
+                        )}>
+                          <div className={cn(
+                            "flex items-center justify-center w-8 h-8 rounded-lg",
+                            pathname === route.href 
+                              ? "bg-blue-500/10 text-blue-500 dark:text-blue-400" 
+                              : "text-muted-foreground"
+                          )}>
+                            <route.icon className={cn(
+                              "flex-shrink-0",
+                              pathname === route.href ? "h-5 w-5" : "h-4 w-4"
+                            )} />
+                          </div>
+                          
+                          {!collapsed && (
+                            <div className="flex items-center justify-between w-full">
+                              <span>{route.title}</span>
+                              {route.badge && (
+                                <Badge variant="default" className="ml-auto h-5 bg-blue-500 hover:bg-blue-600">
+                                  {route.badge}
+                                </Badge>
+                              )}
+                            </div>
+                          )}
+                        </Link>
+                      </SidebarMenuButton>
+                    </TooltipTrigger>
+                    {collapsed && (
+                      <TooltipContent side="right">
+                        <div className="flex items-center gap-2">
+                          <span>{route.title}</span>
+                          {route.badge && (
+                            <Badge variant="default" className="h-5 bg-blue-500">
+                              {route.badge}
+                            </Badge>
+                          )}
+                        </div>
+                      </TooltipContent>
+                    )}
+                  </Tooltip>
+                </TooltipProvider>
               </SidebarMenuItem>
             ))}
           </SidebarMenu>
           
-          <Separator className="my-4 opacity-50" />
+          <Separator className="my-4 opacity-20 mx-2 bg-gradient-to-r from-transparent via-gray-300 dark:via-gray-700 to-transparent" />
           
-          {/* <p className="text-xs font-medium text-muted-foreground/70 px-2 py-1.5">UTILITIES</p>
-          <SidebarMenu>
+          {/* {!collapsed && <p className="text-xs font-medium text-muted-foreground/70 px-2 py-1.5 ml-1">UTILITIES</p>} */}
+          {/* <SidebarMenu>
             {utilityRoutes.map((route) => (
               <SidebarMenuItem key={route.href}>
-                <SidebarMenuButton asChild 
-                  className={cn(
-                    "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-                    pathname === route.href 
-                      ? "bg-accent text-accent-foreground" 
-                      : "text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground"
-                  )}
-                >
-                  <Link href={route.href} className="flex items-center gap-3 w-full">
-                    <route.icon className="h-4 w-4 flex-shrink-0" />
-                    <span>{route.title}</span>
-                  </Link>
-                </SidebarMenuButton>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <SidebarMenuButton asChild 
+                        className={cn(
+                          "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all",
+                          pathname === route.href 
+                            ? "bg-gradient-to-r from-blue-500/10 to-indigo-500/10 text-blue-500 dark:text-blue-400 border-l-2 border-blue-500" 
+                            : "text-muted-foreground hover:bg-white/5 hover:text-foreground",
+                          collapsed && "justify-center px-0"
+                        )}
+                      >
+                        <Link href={route.href} className={cn(
+                          "flex items-center gap-3 w-full",
+                          collapsed && "justify-center"
+                        )}>
+                          <div className={cn(
+                            "flex items-center justify-center w-8 h-8 rounded-lg",
+                            pathname === route.href 
+                              ? "bg-blue-500/10 text-blue-500 dark:text-blue-400" 
+                              : "text-muted-foreground"
+                          )}>
+                            <route.icon className={cn(
+                              "flex-shrink-0",
+                              pathname === route.href ? "h-5 w-5" : "h-4 w-4"
+                            )} />
+                          </div>
+                          
+                          {!collapsed && (
+                            <span>{route.title}</span>
+                          )}
+                        </Link>
+                      </SidebarMenuButton>
+                    </TooltipTrigger>
+                    {collapsed && (
+                      <TooltipContent side="right">
+                        {route.title}
+                      </TooltipContent>
+                    )}
+                  </Tooltip>
+                </TooltipProvider>
               </SidebarMenuItem>
             ))}
           </SidebarMenu> */}
         </div>
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-border/40">
-        <div className="p-4">
-          <div className="flex items-center gap-3 mb-4">
-            <Avatar className="h-10 w-10 flex-shrink-0">
-              <AvatarImage src={imageUrl} alt={userName} />
-              <AvatarFallback className="bg-primary/10 text-primary text-sm">{getInitials(userName)}</AvatarFallback>
-            </Avatar>
+      <SidebarFooter className="border-t border-white/10 dark:border-white/5">
+        <div className={cn(
+          "p-4",
+          collapsed && "p-2"
+        )}>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className={cn(
+                  "flex items-center gap-3 mb-4 p-2 rounded-xl bg-white/5 hover:bg-white/10 transition-colors",
+                  collapsed && "justify-center p-2 mb-2"
+                )}>
+                  <Avatar className="h-10 w-10 flex-shrink-0 border border-white/10 shadow-sm">
+                    <AvatarImage src={imageUrl} alt={userName} />
+                    <AvatarFallback className="bg-gradient-to-br from-blue-500/20 to-indigo-500/20 text-blue-500 text-sm font-medium">{getInitials(userName)}</AvatarFallback>
+                  </Avatar>
 
-            <div className="min-w-0 flex-1">
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <p className="text-sm font-medium truncate">
-                      {truncateName(userName)}
-                    </p>
-                  </TooltipTrigger>
-                  <TooltipContent side="right">
-                    <p>{userName}</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-              <p className="text-xs text-muted-foreground truncate">
-                {userEmail}
-              </p>
-            </div>
-            
-            <ModeToggle />
-          </div>
+                  {!collapsed && (
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium truncate">
+                        {truncateName(userName)}
+                      </p>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {userEmail}
+                      </p>
+                    </div>
+                  )}
+                  
+                  {!collapsed && <ModeToggle />}
+                </div>
+              </TooltipTrigger>
+              {collapsed && (
+                <TooltipContent side="right" className="min-w-52">
+                  <div className="flex flex-col gap-1">
+                    <p className="font-medium">{userName}</p>
+                    <p className="text-xs text-muted-foreground">{userEmail}</p>
+                  </div>
+                </TooltipContent>
+              )}
+            </Tooltip>
+          </TooltipProvider>
 
           <Button 
             onClick={handleLogout} 
-            variant="outline" 
-            className="w-full justify-start text-sm font-normal border-border/60"
+            variant="ghost" 
+            className={cn(
+              "w-full justify-start text-sm font-normal border border-white/10 bg-white/5 hover:bg-white/10 hover:text-destructive transition-colors shadow-sm",
+              collapsed && "justify-center px-0 aspect-square"
+            )}
           >
-            <LogOut className="h-4 w-4 mr-2 opacity-70" />
-            Sign Out
+            <LogOut className={cn(
+              "h-4 w-4 opacity-70",
+              collapsed ? "mr-0" : "mr-2"
+            )} />
+            {!collapsed && "Sign Out"}
           </Button>
         </div>
       </SidebarFooter>
