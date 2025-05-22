@@ -97,14 +97,9 @@ export default function UploadPage() {
         description: `"${file.name}" -  "The audio file has been processed successfully."`,
       });
 
-      // alert("Uploaded")
-
-      // Reset for next file
       setCurrentFile(null);
       setIsUploading(false);
       setUploadProgress(0);
-
-      // Next file in queue will be processed by useEffect
 
     } catch (error) {
       setIsUploading(false);
