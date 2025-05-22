@@ -108,13 +108,7 @@ export default function UploadPage() {
 
     } catch (error) {
       setIsUploading(false);
-      toast({
-        title: "Upload Failed",
-        description: `Error uploading "${file.name}": ${error instanceof Error ? error.message : "Unknown error"}`,
-        variant: "destructive",
-      });
 
-      // Reset for next file
       setCurrentFile(null);
       setUploadProgress(0);
     }
