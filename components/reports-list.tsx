@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -27,7 +27,9 @@ import {
   X,
   ArrowUpDown,
   ArrowUp,
-  ArrowDown
+  ArrowDown,
+  PhoneIncoming,
+  PhoneOutgoing
 } from "lucide-react"
 import { jsPDF } from "jspdf"
 import "jspdf-autotable"
@@ -45,6 +47,39 @@ function convertUTCToLocalLuxon(utcTimeString: string) {
     .toFormat('yyyy-LL-dd HH:mm:ss');
 }
 
+const ColumnHeader = ({ column, icon, label, showSearch = true, columnFilters, columnSorts, handleColumnFilterChange, handleColumnSort }) => (
+  <div className="space-y-2">
+    <div className="flex items-center justify-between">
+      <div className="flex items-center gap-1">
+        {icon}
+        <span>{label}</span>
+      </div>
+      <Button
+        variant="ghost"
+        size="icon"
+        className="h-4 w-4 p-0 hover:bg-gray-200 dark:hover:bg-gray-700"
+        onClick={() => handleColumnSort(column)}
+      >
+        {columnSorts[column] === 'asc' ? (
+          <ArrowUp className="h-3 w-3" />
+        ) : columnSorts[column] === 'desc' ? (
+          <ArrowDown className="h-3 w-3" />
+        ) : (
+          <ArrowUpDown className="h-3 w-3" />
+        )}
+      </Button>
+    </div>
+    {showSearch && (
+      <Input
+        placeholder={`Filter ${label.toLowerCase()}...`}
+        value={columnFilters[column]}
+        onChange={(e) => handleColumnFilterChange(column, e.target.value)}
+        className="h-7 text-xs bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600"
+      />
+    )}
+  </div>
+);
+
 export function ReportsList() {
   const [searchQuery, setSearchQuery] = useState("")
   const [reports, setReports] = useState([])
@@ -56,7 +91,7 @@ export function ReportsList() {
   const [isFilterVisible, setIsFilterVisible] = useState(false)
   const [fromDate, setFromDate] = useState("")
   const [toDate, setToDate] = useState("")
-  
+
   // Individual column filters
   const [columnFilters, setColumnFilters] = useState({
     created_at: '',
@@ -66,7 +101,7 @@ export function ReportsList() {
     customer_number: '',
     caller_sentiment: ''
   })
-  
+
   // Individual column sort states
   const [columnSorts, setColumnSorts] = useState({
     created_at: 'desc',
@@ -112,11 +147,11 @@ export function ReportsList() {
   // Function to check if a date is within the selected range
   const isDateInRange = (dateString: string) => {
     if (!fromDate && !toDate) return true;
-    
+
     const reportDate = DateTime.fromISO(dateString, { zone: 'utc' });
     const fromDateTime = fromDate ? DateTime.fromISO(fromDate + 'T00:00:00') : null;
     const toDateTime = toDate ? DateTime.fromISO(toDate + 'T23:59:59') : null;
-    
+
     if (fromDateTime && toDateTime) {
       return reportDate >= fromDateTime && reportDate <= toDateTime;
     } else if (fromDateTime) {
@@ -124,7 +159,7 @@ export function ReportsList() {
     } else if (toDateTime) {
       return reportDate <= toDateTime;
     }
-    
+
     return true;
   }
 
@@ -148,21 +183,21 @@ export function ReportsList() {
   const handleColumnSort = (column: string) => {
     const currentSort = columnSorts[column]
     let newSort = 'asc'
-    
+
     if (currentSort === 'asc') {
       newSort = 'desc'
     } else if (currentSort === 'desc') {
       newSort = null
     }
-    
+
     // Reset all other column sorts
     const resetSorts = Object.keys(columnSorts).reduce((acc, key) => {
       acc[key] = key === column ? newSort : null
       return acc
     }, {})
-    
+
     setColumnSorts(resetSorts)
-    
+
     // Update main sort config
     if (newSort) {
       setSortConfig({ key: column, direction: newSort })
@@ -343,30 +378,30 @@ export function ReportsList() {
         report.request_type?.toLowerCase().includes(searchQuery.toLowerCase());
 
       // Individual column filters
-      const matchesDateFilter = !columnFilters.created_at || 
+      const matchesDateFilter = !columnFilters.created_at ||
         convertUTCToLocalLuxon(report.created_at).toLowerCase().includes(columnFilters.created_at.toLowerCase());
-      
-      const matchesCallerName = !columnFilters.caller_name || 
+
+      const matchesCallerName = !columnFilters.caller_name ||
         report.caller_name?.toLowerCase().includes(columnFilters.caller_name.toLowerCase());
-      
-      const matchesRequestType = !columnFilters.request_type || 
+
+      const matchesRequestType = !columnFilters.request_type ||
         report.request_type?.toLowerCase().includes(columnFilters.request_type.toLowerCase());
-      
-      const matchesTollFreeDid = !columnFilters.toll_free_did || 
+
+      const matchesTollFreeDid = !columnFilters.toll_free_did ||
         report.request_type?.toLowerCase().includes(columnFilters.toll_free_did.toLowerCase());
-      
-      const matchesCustomerNumber = !columnFilters.customer_number || 
+
+      const matchesCustomerNumber = !columnFilters.customer_number ||
         report.request_type?.toLowerCase().includes(columnFilters.customer_number.toLowerCase());
-      
-      const matchesSentiment = !columnFilters.caller_sentiment || 
+
+      const matchesSentiment = !columnFilters.caller_sentiment ||
         report.caller_sentiment?.toLowerCase().includes(columnFilters.caller_sentiment.toLowerCase());
 
       // Date range filter
       const matchesDateRange = isDateInRange(report.created_at);
 
-      return matchesGlobalSearch && matchesDateFilter && matchesCallerName && 
-             matchesRequestType && matchesTollFreeDid && matchesCustomerNumber && 
-             matchesSentiment && matchesDateRange;
+      return matchesGlobalSearch && matchesDateFilter && matchesCallerName &&
+        matchesRequestType && matchesTollFreeDid && matchesCustomerNumber &&
+        matchesSentiment && matchesDateRange;
     }
   );
 
@@ -395,41 +430,10 @@ export function ReportsList() {
   // Change page
   const paginate = (pageNumber: any) => setCurrentPage(pageNumber);
 
-  // Column header component with sort and filter
-  const ColumnHeader = ({ column, icon, label, showSearch = true }) => (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1">
-          {icon}
-          <span>{label}</span>
-        </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-4 w-4 p-0 hover:bg-gray-200 dark:hover:bg-gray-700"
-          onClick={() => handleColumnSort(column)}
-        >
-          {columnSorts[column] === 'asc' ? (
-            <ArrowUp className="h-3 w-3" />
-          ) : columnSorts[column] === 'desc' ? (
-            <ArrowDown className="h-3 w-3" />
-          ) : (
-            <ArrowUpDown className="h-3 w-3" />
-          )}
-        </Button>
-      </div>
-      {showSearch && (
-        <Input
-          placeholder={`Filter ${label.toLowerCase()}...`}
-          value={columnFilters[column]}
-          onChange={(e) => handleColumnFilterChange(column, e.target.value)}
-          className="h-7 text-xs bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600"
-        />
-      )}
-    </div>
-  )
+
 
   return (
+    // Your entire JSX return content here
     <div className="relative overflow-hidden">
       {/* Decorative blobs */}
       <Blob className="bg-blue-300 w-64 h-64 -top-20 -left-20" />
@@ -567,52 +571,80 @@ export function ReportsList() {
                   <TableHeader>
                     <TableRow className="bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-50 dark:hover:bg-gray-800/50">
                       <TableHead className="font-semibold min-w-[200px]">
-                        <ColumnHeader 
-                          column="created_at" 
-                          icon={<Calendar className="h-4 w-4" />} 
-                          label="Date" 
+                        <ColumnHeader
+                          column="created_at"
+                          icon={<Calendar className="h-4 w-4" />}
+                          label="Date"
+                          columnFilters={columnFilters}
+                          columnSorts={columnSorts}
+                          handleColumnFilterChange={handleColumnFilterChange}
+                          handleColumnSort={handleColumnSort}
                         />
                       </TableHead>
                       <TableHead className="font-semibold min-w-[150px]">
-                        <ColumnHeader 
-                          column="request_type" 
-                          icon={<ArrowRightLeft className="h-4 w-4" />} 
-                          label="In/External" 
+                        <ColumnHeader
+                          column="call_type"
+                          icon={<ArrowRightLeft className="h-4 w-4" />}
+                          label="In/External"
+                          columnFilters={columnFilters}
+                          columnSorts={columnSorts}
+                          handleColumnFilterChange={handleColumnFilterChange}
+                          handleColumnSort={handleColumnSort}
                         />
                       </TableHead>
                       <TableHead className="font-semibold min-w-[180px]">
-                        <ColumnHeader 
-                          column="caller_name" 
-                          icon={<UserRound className="h-4 w-4" />} 
-                          label="Caller Name" 
+                        <ColumnHeader
+                          column="caller_name"
+                          icon={<UserRound className="h-4 w-4" />}
+                          label="Caller Name"
+                          columnFilters={columnFilters}
+                          columnSorts={columnSorts}
+                          handleColumnFilterChange={handleColumnFilterChange}
+                          handleColumnSort={handleColumnSort}
                         />
                       </TableHead>
                       <TableHead className="font-semibold min-w-[150px]">
-                        <ColumnHeader 
-                          column="request_type" 
-                          icon={<Network className="h-4 w-4" />} 
-                          label="Request Type" 
+                        <ColumnHeader
+                          column="request_type"
+                          icon={<Network className="h-4 w-4" />}
+                          label="Request Type"
+                          columnFilters={columnFilters}
+                          columnSorts={columnSorts}
+                          handleColumnFilterChange={handleColumnFilterChange}
+                          handleColumnSort={handleColumnSort}
                         />
                       </TableHead>
                       <TableHead className="font-semibold min-w-[150px]">
-                        <ColumnHeader 
-                          column="toll_free_did" 
-                          icon={<Headset className="h-4 w-4" />} 
-                          label="Toll Free/DID" 
+                        <ColumnHeader
+                          column="toll_free_did"
+                          icon={<Headset className="h-4 w-4" />}
+                          label="Toll Free/DID"
+                          columnFilters={columnFilters}
+                          columnSorts={columnSorts}
+                          handleColumnFilterChange={handleColumnFilterChange}
+                          handleColumnSort={handleColumnSort}
                         />
                       </TableHead>
                       <TableHead className="font-semibold min-w-[170px]">
-                        <ColumnHeader 
-                          column="customer_number" 
-                          icon={<Phone className="h-4 w-4" />} 
-                          label="Customer Number" 
+                        <ColumnHeader
+                          column="customer_number"
+                          icon={<Phone className="h-4 w-4" />}
+                          label="Customer Number"
+                          columnFilters={columnFilters}
+                          columnSorts={columnSorts}
+                          handleColumnFilterChange={handleColumnFilterChange}
+                          handleColumnSort={handleColumnSort}
                         />
                       </TableHead>
                       <TableHead className="font-semibold min-w-[150px]">
-                        <ColumnHeader 
-                          column="caller_sentiment" 
-                          icon={<AudioLines className="h-4 w-4" />} 
-                          label="Sentiment" 
+                        <ColumnHeader
+                          column="caller_sentiment"
+                          icon={<AudioLines className="h-4 w-4" />}
+                          label="Sentiment"
+                          columnFilters={columnFilters}
+                          columnSorts={columnSorts}
+                          handleColumnFilterChange={handleColumnFilterChange}
+                          handleColumnSort={handleColumnSort}
                         />
                       </TableHead>
                       <TableHead className="font-semibold text-center min-w-[120px]">
@@ -672,8 +704,20 @@ export function ReportsList() {
                             <TableCell className="text-gray-600 dark:text-gray-300">
                               {convertUTCToLocalLuxon(report.created_at) || "N/A"}
                             </TableCell>
-                            <TableCell className="text-gray-600 dark:text-gray-300">
-                              {report.request_type?.charAt(0).toUpperCase() + report.request_type?.slice(1) || "N/A"}
+                            <TableCell className="text-gray-600 dark:text-gray-300 flex items-center gap-2">
+                              {report.call_type === 'in' ? (
+                                <>
+                                  <PhoneIncoming className="w-4 h-4 text-green-500" />
+                                  In
+                                </>
+                              ) : report.call_type === 'external' ? (
+                                <>
+                                  <PhoneOutgoing className="w-4 h-4 text-red-500" />
+                                  External
+                                </>
+                              ) : (
+                                report.call_type
+                              )}
                             </TableCell>
                             <TableCell>
                               <Button
@@ -691,10 +735,10 @@ export function ReportsList() {
                               {report.request_type?.charAt(0).toUpperCase() + report.request_type?.slice(1) || "N/A"}
                             </TableCell>
                             <TableCell className="text-gray-600 dark:text-gray-300">
-                              {report.request_type?.charAt(0).toUpperCase() + report.request_type?.slice(1) || "N/A"}
+                              {report.toll_free_did || "N/A"}
                             </TableCell>
                             <TableCell className="text-gray-600 dark:text-gray-300">
-                              {report.request_type?.charAt(0).toUpperCase() + report.request_type?.slice(1) || "N/A"}
+                              {report.customer_number || "N/A"}
                             </TableCell>
 
                             <TableCell>
@@ -767,11 +811,10 @@ export function ReportsList() {
                   </Button>
                   {[...Array(totalPages)].map((_, i) => (
                     <Button
-                      key={i}
+                      key={`page-${i}`}  // Use a more stable key
                       variant={currentPage === i + 1 ? "default" : "outline"}
                       size="icon"
-                      className={`h-8 w-8 rounded-full ${currentPage === i + 1 ? "bg-gradient-to-r from-blue-500 to-purple-500" : ""
-                        }`}
+                      className={`h-8 w-8 rounded-full ${currentPage === i + 1 ? "bg-gradient-to-r from-blue-500 to-purple-500" : ""}`}
                       onClick={() => paginate(i + 1)}
                     >
                       {i + 1}
@@ -793,5 +836,9 @@ export function ReportsList() {
         </Card>
       </motion.div>
     </div>
-  )
+  );
+
+  return memoizedContent;
+
+
 }
