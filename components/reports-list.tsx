@@ -18,7 +18,16 @@ import {
   AudioLines,
   Play,
   ArrowRightLeft,
-  Eye
+  Eye,
+  Send,
+  Smartphone,
+  Network,
+  Headset,
+  UserRound,
+  X,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown
 } from "lucide-react"
 import { jsPDF } from "jspdf"
 import "jspdf-autotable"
@@ -36,8 +45,6 @@ function convertUTCToLocalLuxon(utcTimeString: string) {
     .toFormat('yyyy-LL-dd HH:mm:ss');
 }
 
-
-
 export function ReportsList() {
   const [searchQuery, setSearchQuery] = useState("")
   const [reports, setReports] = useState([])
@@ -47,7 +54,29 @@ export function ReportsList() {
   const [reportsPerPage] = useState(5)
   const [sortConfig, setSortConfig] = useState({ key: 'created_at', direction: 'desc' })
   const [isFilterVisible, setIsFilterVisible] = useState(false)
-  const [selectedSentiment, setSelectedSentiment] = useState("all")
+  const [fromDate, setFromDate] = useState("")
+  const [toDate, setToDate] = useState("")
+  
+  // Individual column filters
+  const [columnFilters, setColumnFilters] = useState({
+    created_at: '',
+    caller_name: '',
+    request_type: '',
+    toll_free_did: '',
+    customer_number: '',
+    caller_sentiment: ''
+  })
+  
+  // Individual column sort states
+  const [columnSorts, setColumnSorts] = useState({
+    created_at: 'desc',
+    caller_name: null,
+    request_type: null,
+    toll_free_did: null,
+    customer_number: null,
+    caller_sentiment: null
+  })
+
   const router = useRouter()
   const { setSelectedReport } = useReportStore()
 
@@ -79,6 +108,84 @@ export function ReportsList() {
   useEffect(() => {
     fetchReports()
   }, [])
+
+  // Function to check if a date is within the selected range
+  const isDateInRange = (dateString: string) => {
+    if (!fromDate && !toDate) return true;
+    
+    const reportDate = DateTime.fromISO(dateString, { zone: 'utc' });
+    const fromDateTime = fromDate ? DateTime.fromISO(fromDate + 'T00:00:00') : null;
+    const toDateTime = toDate ? DateTime.fromISO(toDate + 'T23:59:59') : null;
+    
+    if (fromDateTime && toDateTime) {
+      return reportDate >= fromDateTime && reportDate <= toDateTime;
+    } else if (fromDateTime) {
+      return reportDate >= fromDateTime;
+    } else if (toDateTime) {
+      return reportDate <= toDateTime;
+    }
+    
+    return true;
+  }
+
+  // Clear date filters
+  const clearDateFilters = () => {
+    setFromDate("");
+    setToDate("");
+    setCurrentPage(1);
+  }
+
+  // Handle column filter change
+  const handleColumnFilterChange = (column: string, value: string) => {
+    setColumnFilters(prev => ({
+      ...prev,
+      [column]: value
+    }))
+    setCurrentPage(1)
+  }
+
+  // Handle column sort
+  const handleColumnSort = (column: string) => {
+    const currentSort = columnSorts[column]
+    let newSort = 'asc'
+    
+    if (currentSort === 'asc') {
+      newSort = 'desc'
+    } else if (currentSort === 'desc') {
+      newSort = null
+    }
+    
+    // Reset all other column sorts
+    const resetSorts = Object.keys(columnSorts).reduce((acc, key) => {
+      acc[key] = key === column ? newSort : null
+      return acc
+    }, {})
+    
+    setColumnSorts(resetSorts)
+    
+    // Update main sort config
+    if (newSort) {
+      setSortConfig({ key: column, direction: newSort })
+    } else {
+      setSortConfig({ key: 'created_at', direction: 'desc' })
+    }
+  }
+
+  // Clear all filters
+  const clearAllFilters = () => {
+    setColumnFilters({
+      created_at: '',
+      caller_name: '',
+      request_type: '',
+      toll_free_did: '',
+      customer_number: '',
+      caller_sentiment: ''
+    })
+    setSearchQuery('')
+    setFromDate('')
+    setToDate('')
+    setCurrentPage(1)
+  }
 
   // Parse markdown using MDX serializer
   const parseMarkdownWithMDX = async (markdown: any) => {
@@ -216,15 +323,6 @@ export function ReportsList() {
     doc.save(fileName);
   }
 
-  // Sorting function
-  const requestSort = (key: any) => {
-    let direction = 'asc';
-    if (sortConfig.key === key && sortConfig.direction === 'asc') {
-      direction = 'desc';
-    }
-    setSortConfig({ key, direction });
-  };
-
   // Apply sorting
   const sortedReports = [...reports].sort((a, b) => {
     if (a[sortConfig.key] < b[sortConfig.key]) {
@@ -239,17 +337,36 @@ export function ReportsList() {
   // Apply filters
   const filteredReports = sortedReports.filter(
     (report: any) => {
-      // Search filter
-      const matchesSearch =
+      // Global search filter
+      const matchesGlobalSearch =
         report.caller_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         report.request_type?.toLowerCase().includes(searchQuery.toLowerCase());
 
-      // Sentiment filter
-      const matchesSentiment =
-        selectedSentiment === "all" ||
-        (report.caller_sentiment?.toLowerCase().includes(selectedSentiment.toLowerCase()));
+      // Individual column filters
+      const matchesDateFilter = !columnFilters.created_at || 
+        convertUTCToLocalLuxon(report.created_at).toLowerCase().includes(columnFilters.created_at.toLowerCase());
+      
+      const matchesCallerName = !columnFilters.caller_name || 
+        report.caller_name?.toLowerCase().includes(columnFilters.caller_name.toLowerCase());
+      
+      const matchesRequestType = !columnFilters.request_type || 
+        report.request_type?.toLowerCase().includes(columnFilters.request_type.toLowerCase());
+      
+      const matchesTollFreeDid = !columnFilters.toll_free_did || 
+        report.request_type?.toLowerCase().includes(columnFilters.toll_free_did.toLowerCase());
+      
+      const matchesCustomerNumber = !columnFilters.customer_number || 
+        report.request_type?.toLowerCase().includes(columnFilters.customer_number.toLowerCase());
+      
+      const matchesSentiment = !columnFilters.caller_sentiment || 
+        report.caller_sentiment?.toLowerCase().includes(columnFilters.caller_sentiment.toLowerCase());
 
-      return matchesSearch && matchesSentiment;
+      // Date range filter
+      const matchesDateRange = isDateInRange(report.created_at);
+
+      return matchesGlobalSearch && matchesDateFilter && matchesCallerName && 
+             matchesRequestType && matchesTollFreeDid && matchesCustomerNumber && 
+             matchesSentiment && matchesDateRange;
     }
   );
 
@@ -269,8 +386,6 @@ export function ReportsList() {
     }
   }
 
-
-
   // Get current reports for pagination
   const indexOfLastReport = currentPage * reportsPerPage;
   const indexOfFirstReport = indexOfLastReport - reportsPerPage;
@@ -279,6 +394,40 @@ export function ReportsList() {
 
   // Change page
   const paginate = (pageNumber: any) => setCurrentPage(pageNumber);
+
+  // Column header component with sort and filter
+  const ColumnHeader = ({ column, icon, label, showSearch = true }) => (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-1">
+          {icon}
+          <span>{label}</span>
+        </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-4 w-4 p-0 hover:bg-gray-200 dark:hover:bg-gray-700"
+          onClick={() => handleColumnSort(column)}
+        >
+          {columnSorts[column] === 'asc' ? (
+            <ArrowUp className="h-3 w-3" />
+          ) : columnSorts[column] === 'desc' ? (
+            <ArrowDown className="h-3 w-3" />
+          ) : (
+            <ArrowUpDown className="h-3 w-3" />
+          )}
+        </Button>
+      </div>
+      {showSearch && (
+        <Input
+          placeholder={`Filter ${label.toLowerCase()}...`}
+          value={columnFilters[column]}
+          onChange={(e) => handleColumnFilterChange(column, e.target.value)}
+          className="h-7 text-xs bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600"
+        />
+      )}
+    </div>
+  )
 
   return (
     <div className="relative overflow-hidden">
@@ -314,7 +463,7 @@ export function ReportsList() {
                 >
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <Input
-                    placeholder="Search reports..."
+                    placeholder="Global search..."
                     className="pl-10 bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded-full focus:ring focus:ring-blue-200 dark:focus:ring-blue-900 transition-all duration-200"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
@@ -335,10 +484,20 @@ export function ReportsList() {
                     <Filter className="h-4 w-4" />
                   </Button>
                 </motion.div>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="rounded-full text-xs hover:bg-gray-100 dark:hover:bg-gray-800"
+                  onClick={clearAllFilters}
+                >
+                  <X className="h-3 w-3 mr-1" />
+                  Clear All
+                </Button>
               </div>
             </div>
 
-            {/* Filters Panel */}
+            {/* Date Range Filter Panel */}
             <AnimatePresence>
               {isFilterVisible && (
                 <motion.div
@@ -348,56 +507,51 @@ export function ReportsList() {
                   transition={{ duration: 0.3 }}
                   className="overflow-hidden"
                 >
-                  <div className="pt-4 flex flex-wrap gap-3">
+                  <div className="pt-4 space-y-4">
                     <div>
-                      <p className="text-sm font-medium mb-1 text-gray-500">Sentiment Filter</p>
-                      <div className="flex gap-2">
-                        {["all", "positive", "neutral", "negative"].map((sentiment) => (
+                      <p className="text-sm font-medium mb-2 text-gray-500">Date Range Filter</p>
+                      <div className="flex flex-wrap gap-3 items-end">
+                        <div className="flex flex-col">
+                          <label className="text-xs text-gray-400 mb-1">From Date</label>
+                          <div className="relative">
+                            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                            <Input
+                              type="date"
+                              value={fromDate}
+                              onChange={(e) => {
+                                setFromDate(e.target.value);
+                                setCurrentPage(1);
+                              }}
+                              className="pl-10 w-40 bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded-lg text-sm"
+                            />
+                          </div>
+                        </div>
+                        <div className="flex flex-col">
+                          <label className="text-xs text-gray-400 mb-1">To Date</label>
+                          <div className="relative">
+                            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                            <Input
+                              type="date"
+                              value={toDate}
+                              onChange={(e) => {
+                                setToDate(e.target.value);
+                                setCurrentPage(1);
+                              }}
+                              className="pl-10 w-40 bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded-lg text-sm"
+                            />
+                          </div>
+                        </div>
+                        {(fromDate || toDate) && (
                           <Button
-                            key={sentiment}
                             size="sm"
-                            variant={selectedSentiment === sentiment ? "default" : "outline"}
-                            className={`rounded-full text-xs capitalize ${selectedSentiment === sentiment
-                              ? "bg-gradient-to-r from-blue-500 to-purple-500"
-                              : "hover:bg-gray-100 dark:hover:bg-gray-800"
-                              }`}
-                            onClick={() => setSelectedSentiment(sentiment)}
+                            variant="outline"
+                            onClick={clearDateFilters}
+                            className="rounded-full text-xs hover:bg-gray-100 dark:hover:bg-gray-800"
                           >
-                            {sentiment}
+                            <X className="h-3 w-3 mr-1" />
+                            Clear
                           </Button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div>
-                      <p className="text-sm font-medium mb-1 text-gray-500">Sort By</p>
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          variant={sortConfig.key === 'created_at' ? "default" : "outline"}
-                          className={`rounded-full text-xs ${sortConfig.key === 'created_at'
-                            ? "bg-gradient-to-r from-blue-500 to-purple-500"
-                            : "hover:bg-gray-100 dark:hover:bg-gray-800"
-                            }`}
-                          onClick={() => requestSort('created_at')}
-                        >
-                          Date {sortConfig.key === 'created_at' && (
-                            sortConfig.direction === 'asc' ? '↑' : '↓'
-                          )}
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant={sortConfig.key === 'caller_name' ? "default" : "outline"}
-                          className={`rounded-full text-xs ${sortConfig.key === 'caller_name'
-                            ? "bg-gradient-to-r from-blue-500 to-purple-500"
-                            : "hover:bg-gray-100 dark:hover:bg-gray-800"
-                            }`}
-                          onClick={() => requestSort('caller_name')}
-                        >
-                          Name {sortConfig.key === 'caller_name' && (
-                            sortConfig.direction === 'asc' ? '↑' : '↓'
-                          )}
-                        </Button>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -411,34 +565,59 @@ export function ReportsList() {
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
-                    <TableRow className="bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-50 dark:hover:bg-gray-800/50 text-lg">
-                      <TableHead className="font-semibold">
-                        <div className="flex items-center gap-1">
-                          <Phone className="h-4.5 w-3.5" />
-                          <span>Caller Name</span>
-                        </div>
+                    <TableRow className="bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                      <TableHead className="font-semibold min-w-[200px]">
+                        <ColumnHeader 
+                          column="created_at" 
+                          icon={<Calendar className="h-4 w-4" />} 
+                          label="Date" 
+                        />
                       </TableHead>
-                      <TableHead className="font-semibold">
-                        <div className="flex items-center gap-1">
-                          <ArrowRightLeft className="h-4.5 w-3.5" />
-                          <span>Request Type</span>
-                        </div>
+                      <TableHead className="font-semibold min-w-[150px]">
+                        <ColumnHeader 
+                          column="request_type" 
+                          icon={<ArrowRightLeft className="h-4 w-4" />} 
+                          label="In/External" 
+                        />
                       </TableHead>
-                      <TableHead className="font-semibold">
-                        <div className="flex items-center gap-1">
-                          <Calendar className="h-4.5 w-3.5" />
-                          <span>Date</span>
-                        </div>
+                      <TableHead className="font-semibold min-w-[180px]">
+                        <ColumnHeader 
+                          column="caller_name" 
+                          icon={<UserRound className="h-4 w-4" />} 
+                          label="Caller Name" 
+                        />
                       </TableHead>
-                      <TableHead className="font-semibold">
-                        <div className="flex items-center gap-1">
-                          <AudioLines className="h-4.5 w-3.5" />
-                          <span>Sentiment</span>
-                        </div>
+                      <TableHead className="font-semibold min-w-[150px]">
+                        <ColumnHeader 
+                          column="request_type" 
+                          icon={<Network className="h-4 w-4" />} 
+                          label="Request Type" 
+                        />
                       </TableHead>
-                      <TableHead className=" font-semibold">
+                      <TableHead className="font-semibold min-w-[150px]">
+                        <ColumnHeader 
+                          column="toll_free_did" 
+                          icon={<Headset className="h-4 w-4" />} 
+                          label="Toll Free/DID" 
+                        />
+                      </TableHead>
+                      <TableHead className="font-semibold min-w-[170px]">
+                        <ColumnHeader 
+                          column="customer_number" 
+                          icon={<Phone className="h-4 w-4" />} 
+                          label="Customer Number" 
+                        />
+                      </TableHead>
+                      <TableHead className="font-semibold min-w-[150px]">
+                        <ColumnHeader 
+                          column="caller_sentiment" 
+                          icon={<AudioLines className="h-4 w-4" />} 
+                          label="Sentiment" 
+                        />
+                      </TableHead>
+                      <TableHead className="font-semibold text-center min-w-[120px]">
                         <div className="flex justify-center items-center gap-1">
-                          <Play className="h-4.5 w-3.5" />
+                          <Play className="h-4 w-4" />
                           <span>Actions</span>
                         </div>
                       </TableHead>
@@ -447,7 +626,7 @@ export function ReportsList() {
                   <TableBody className="text-[0.9rem]">
                     {loading ? (
                       <TableRow>
-                        <TableCell colSpan={5} className="h-32">
+                        <TableCell colSpan={8} className="h-32">
                           <div className="flex flex-col items-center justify-center">
                             <div className="h-8 w-8 rounded-full border-2 border-blue-500 border-r-transparent animate-spin"></div>
                             <p className="mt-2 text-sm text-gray-500">Loading reports...</p>
@@ -456,7 +635,7 @@ export function ReportsList() {
                       </TableRow>
                     ) : error ? (
                       <TableRow>
-                        <TableCell colSpan={5} className="h-32 text-center">
+                        <TableCell colSpan={8} className="h-32 text-center">
                           <div className="flex flex-col items-center justify-center">
                             <div className="rounded-full bg-red-100 p-3">
                               <svg className="h-6 w-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -469,12 +648,15 @@ export function ReportsList() {
                       </TableRow>
                     ) : currentReports.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={5} className="h-32 text-center">
+                        <TableCell colSpan={8} className="h-32 text-center">
                           <div className="flex flex-col items-center justify-center">
                             <div className="rounded-full bg-gray-100 dark:bg-gray-800 p-3">
                               <FileText className="h-6 w-6 text-gray-400" />
                             </div>
                             <p className="mt-2 text-gray-500">No reports found.</p>
+                            {(fromDate || toDate || Object.values(columnFilters).some(f => f)) && (
+                              <p className="text-xs text-gray-400 mt-1">Try adjusting your filters</p>
+                            )}
                           </div>
                         </TableCell>
                       </TableRow>
@@ -487,6 +669,12 @@ export function ReportsList() {
                             key={report.id}
                             className="group hover:bg-gray-50/50 dark:hover:bg-gray-800/20 transition-all duration-200 text-[0.9rem]"
                           >
+                            <TableCell className="text-gray-600 dark:text-gray-300">
+                              {convertUTCToLocalLuxon(report.created_at) || "N/A"}
+                            </TableCell>
+                            <TableCell className="text-gray-600 dark:text-gray-300">
+                              {report.request_type?.charAt(0).toUpperCase() + report.request_type?.slice(1) || "N/A"}
+                            </TableCell>
                             <TableCell>
                               <Button
                                 variant="ghost"
@@ -503,8 +691,12 @@ export function ReportsList() {
                               {report.request_type?.charAt(0).toUpperCase() + report.request_type?.slice(1) || "N/A"}
                             </TableCell>
                             <TableCell className="text-gray-600 dark:text-gray-300">
-                              {convertUTCToLocalLuxon(report.created_at) || "N/A"}
+                              {report.request_type?.charAt(0).toUpperCase() + report.request_type?.slice(1) || "N/A"}
                             </TableCell>
+                            <TableCell className="text-gray-600 dark:text-gray-300">
+                              {report.request_type?.charAt(0).toUpperCase() + report.request_type?.slice(1) || "N/A"}
+                            </TableCell>
+
                             <TableCell>
                               <span
                                 className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium transition-all duration-200 ${sentimentColor === "green"

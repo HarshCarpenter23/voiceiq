@@ -93,7 +93,7 @@ export function DashboardSidebar() {
   return (
     <Sidebar className={cn(
       "transition-all duration-300 ease-in-out",
-      collapsed ? "w-20" : "w-64",
+      collapsed ? "w-20" : "w-40",
       "bg-background/60 backdrop-blur-xl border-r border-white/10 shadow-lg",
       "dark:bg-black/40 dark:border-white/5"
     )}>
@@ -103,10 +103,10 @@ export function DashboardSidebar() {
             "flex items-center gap-2 font-medium transition-opacity",
             collapsed && "justify-center"
           )}>
-            <div className="flex items-center justify-center h-10 w-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-md shadow-blue-500/20">
+            <div className="flex items-center justify-center h-8 w-8 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-md shadow-blue-500/20">
               <Headphones className="h-5 w-5" />
             </div>
-            {!collapsed && <span className="text-3xl tracking-tight font-semibold bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-indigo-500">&nbsp;VoiceIQ</span>}
+            {!collapsed && <span className="text-xl tracking-tight font-semibold bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-indigo-500">VoiceIQ</span>}
           </Link>
           
           <Button 
