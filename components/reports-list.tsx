@@ -144,13 +144,14 @@ export function ReportsList() {
     fetchReports()
   }, [])
 
-  // Function to check if a date is within the selected range
-  const isDateInRange = (dateString: string) => {
+  // Update the isDateInRange function:
+  const isDateInRange = (callDate: string) => {
     if (!fromDate && !toDate) return true;
+    if (!callDate) return true; // Handle null/undefined call_date
 
-    const reportDate = DateTime.fromISO(dateString, { zone: 'utc' });
-    const fromDateTime = fromDate ? DateTime.fromISO(fromDate + 'T00:00:00') : null;
-    const toDateTime = toDate ? DateTime.fromISO(toDate + 'T23:59:59') : null;
+    const reportDate = DateTime.fromISO(callDate);
+    const fromDateTime = fromDate ? DateTime.fromISO(fromDate + 'T00:00:00').startOf('day') : null;
+    const toDateTime = toDate ? DateTime.fromISO(toDate + 'T23:59:59').endOf('day') : null;
 
     if (fromDateTime && toDateTime) {
       return reportDate >= fromDateTime && reportDate <= toDateTime;
@@ -379,7 +380,7 @@ export function ReportsList() {
 
       // Individual column filters
       const matchesDateFilter = !columnFilters.created_at ||
-        convertUTCToLocalLuxon(report.created_at).toLowerCase().includes(columnFilters.created_at.toLowerCase());
+        (report.call_date && report.call_date.toLowerCase().includes(columnFilters.created_at.toLowerCase()));
 
       const matchesCallerName = !columnFilters.caller_name ||
         report.caller_name?.toLowerCase().includes(columnFilters.caller_name.toLowerCase());
@@ -396,8 +397,7 @@ export function ReportsList() {
       const matchesSentiment = !columnFilters.caller_sentiment ||
         report.caller_sentiment?.toLowerCase().includes(columnFilters.caller_sentiment.toLowerCase());
 
-      // Date range filter
-      const matchesDateRange = isDateInRange(report.created_at);
+      const matchesDateRange = isDateInRange(report.call_date);
 
       return matchesGlobalSearch && matchesDateFilter && matchesCallerName &&
         matchesRequestType && matchesTollFreeDid && matchesCustomerNumber &&
@@ -702,7 +702,7 @@ export function ReportsList() {
                             className="group hover:bg-gray-50/50 dark:hover:bg-gray-800/20 transition-all duration-200 text-[0.9rem]"
                           >
                             <TableCell className="text-gray-600 dark:text-gray-300">
-                              {convertUTCToLocalLuxon(report.created_at) || "N/A"}
+                              {report.call_date || "N/A"}
                             </TableCell>
                             <TableCell className="text-gray-600 dark:text-gray-300 flex items-center gap-2">
                               {report.call_type === 'in' ? (
