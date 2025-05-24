@@ -86,7 +86,7 @@ export function ReportsList() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
   const [currentPage, setCurrentPage] = useState(1)
-  const [reportsPerPage] = useState(5)
+  const [reportsPerPage] = useState(20)
   const [sortConfig, setSortConfig] = useState({ key: 'created_at', direction: 'desc' })
   const [isFilterVisible, setIsFilterVisible] = useState(false)
   const [fromDate, setFromDate] = useState("")
@@ -837,8 +837,6 @@ export function ReportsList() {
       </motion.div>
     </div>
   );
-
-  return memoizedContent;
 
 
 }

@@ -141,15 +141,31 @@ ${content}
     )
   }
 
-  // Format transcription for better readability
-  const formattedTranscription = transcription
-    .split(/(?<=[.!?])\s+/)
-    .filter(segment => segment.trim().length > 0)
-    .map((segment, index) => ({
-      id: index,
-      text: segment.trim(),
-      speaker: index % 2 === 0 ? "Agent" : "Customer" // Alternate speakers as example
-    }));
+  // Format call logs for better readability - using calllog instead of transcription
+  const formattedTranscription = calllog
+    .split('\n')
+    .filter(line => line.trim().length > 0)
+    .map((line, index) => {
+      const trimmedLine = line.trim();
+      let speaker = "Unknown";
+      let text = trimmedLine;
+      
+      // Check if line starts with "Support Agent:" or "Client:"
+      if (trimmedLine.startsWith('Support Agent:')) {
+        speaker = "Agent";
+        text = trimmedLine.replace('Support Agent:', '').trim();
+      } else if (trimmedLine.startsWith('Client:')) {
+        speaker = "Customer";
+        text = trimmedLine.replace('Client:', '').trim();
+      }
+      
+      return {
+        id: index,
+        text: text,
+        speaker: speaker
+      };
+    })
+    .filter(segment => segment.text.length > 0); // Remove empty segments
 
   return (
     <DashboardShell>
@@ -200,24 +216,6 @@ ${content}
 
           <TabsContent value="transcription" className="focus:outline-none">
             <div className="space-y-6 pb-10" ref={transcriptionRef}>
-              {/* <div className="mb-6">
-                <h2 className="text-xl font-semibold">Call Transcription</h2>
-                <div className="flex items-center gap-4 text-sm text-muted-foreground mt-2">
-                  <div className="flex items-center gap-2">
-                    <CalendarIcon size={14} />
-                    <span>{metadata.date}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Clock size={14} />
-                    <span>{metadata.duration}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Phone size={14} />
-                    <span>{metadata.caller}</span>
-                  </div>
-                </div>
-              </div> */}
-
               {formattedTranscription.map((segment) => (
                 <div
                   key={segment.id}
@@ -279,22 +277,6 @@ ${content}
                 </div>
                 <div className="p-6 overflow-y-auto h-[calc(100%-56px)]" ref={issueSummaryRef}>
                   <div className="text-sm leading-relaxed space-y-4">
-                    {/* <h2 className="text-xl font-semibold mb-2">Call Issue Summary</h2> */}
-                    {/* <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
-                      <div className="flex items-center gap-2">
-                        <CalendarIcon size={14} />
-                        <span>{metadata.date}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Clock size={14} />
-                        <span>{metadata.duration}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Phone size={14} />
-                        <span>{metadata.caller}</span>
-                      </div> */}
-                    {/* </div> */}
-
                     <div className="bg-muted/30 p-4 rounded-lg border border-muted">
                       <p>{metadata.issueSummary}</p>
                     </div>
@@ -326,7 +308,7 @@ ${content}
                     <div className="space-y-4">
                       <div>
                         <p className="text-xs text-muted-foreground mb-1">Call Type</p>
-                        <p className="text-sm font-medium">{callType.charAt(0).toUpperCase() + callType.slice(1)}</p>
+                        <p className="text-sm font-medium">{callType?.charAt(0).toUpperCase() + callType?.slice(1)}</p>
                       </div>
                       <div>
                         <p className="text-xs text-muted-foreground mb-1">Call Result</p>
@@ -353,24 +335,6 @@ ${content}
                   </div>
                   <div className="p-4">
                     <div className="space-y-3">
-                      {/* <div>
-                        <div className="flex justify-between text-xs mb-1">
-                          <span className="text-muted-foreground">Agent Talk Time</span>
-                          <span className="font-medium">65%</span>
-                        </div>
-                        <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
-                          <div className="h-full bg-blue-500 rounded-full" style={{ width: '65%' }}></div>
-                        </div>
-                      </div>
-                      <div>
-                        <div className="flex justify-between text-xs mb-1">
-                          <span className="text-muted-foreground">Customer Talk Time</span>
-                          <span className="font-medium">35%</span>
-                        </div>
-                        <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
-                          <div className="h-full bg-blue-500 rounded-full" style={{ width: '35%' }}></div>
-                        </div>
-                      </div> */}
                       <div>
                         <div className="flex justify-between text-xs mb-1">
                           <span className="text-muted-foreground">Sentiment</span>
@@ -382,22 +346,7 @@ ${content}
                             &nbsp;{sentiment?.charAt(0).toUpperCase() + sentiment?.slice(1)}
                           </span>
                         </div>
-                        {/* <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
-                          <div
-                            className={`h-full rounded-full ${sentiment === 'happy'
-                                ? 'bg-green-500'
-                                : sentiment === 'frustrated'
-                                  ? 'bg-yellow-500'
-                                  : sentiment === 'angry'
-                                    ? 'bg-red-500'
-                                    : 'bg-white'
-                              }`}
-                            style={{ width: '75%' }} // Replace with dynamic width if needed
-                          ></div>
-                        </div> */}
                       </div>
-
-
                     </div>
                   </div>
                 </div>
