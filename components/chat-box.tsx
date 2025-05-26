@@ -3,28 +3,43 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { Button } from "./ui/button";
-import { SendHorizontal, Loader2 } from "lucide-react";
+import { SendHorizontal, Loader2, Mic, MicOff, Square } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type Message = {
   type: "user" | "bot";
   text: string;
   timestamp: string;
+  isAudio?: boolean;
 };
 
 const ChatBox = () => {
   const params = useParams();
   const uuid = params?.id as string;
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingTime, setRecordingTime] = useState(0);
+  const [recordingInterval, setRecordingInterval] = useState<NodeJS.Timeout | null>(null);
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Cleanup recording interval on unmount
+  useEffect(() => {
+    return () => {
+      if (recordingInterval) {
+        clearInterval(recordingInterval);
+      }
+    };
+  }, [recordingInterval]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -33,6 +48,110 @@ const ChatBox = () => {
   const formatTimestamp = () => {
     const now = new Date();
     return `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+  };
+
+  const formatRecordingTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = () => {
+        stream.getTracks().forEach(track => track.stop());
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+      setRecordingTime(0);
+
+      // Start recording timer
+      const interval = setInterval(() => {
+        setRecordingTime(prev => prev + 1);
+      }, 1000);
+      setRecordingInterval(interval);
+
+    } catch (error) {
+      console.error("Error accessing microphone:", error);
+      alert("Unable to access microphone. Please check permissions.");
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+      
+      if (recordingInterval) {
+        clearInterval(recordingInterval);
+        setRecordingInterval(null);
+      }
+
+      // Process the recorded audio
+      setTimeout(() => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
+        sendAudioMessage(audioBlob);
+      }, 100);
+    }
+  };
+
+  const sendAudioMessage = async (audioBlob: Blob) => {
+    const userMessage: Message = { 
+      type: "user", 
+      text: "🎤 Voice message",
+      timestamp: formatTimestamp(),
+      isAudio: true
+    };
+    
+    setMessages((prev) => [...prev, userMessage]);
+    setIsLoading(true);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', audioBlob, 'recording.wav');
+      formData.append('uuid', uuid);
+
+      // Audio endpoint for voice messages
+      const res = await fetch("https://voiceiq-db.indominuslabs.in/voice_chat", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+
+      const botMessage: Message = {
+        type: "bot",
+        text: data.status === "success" 
+          ? data.content 
+          : "Sorry, I couldn't process that audio message.",
+        timestamp: formatTimestamp()
+      };
+      
+      setMessages((prev) => [...prev, botMessage]);
+    } catch (err) {
+      const errorMessage: Message = {
+        type: "bot", 
+        text: "Network error. Please try again later.",
+        timestamp: formatTimestamp()
+      };
+      
+      setMessages((prev) => [...prev, errorMessage]);
+    } finally {
+      setIsLoading(false);
+      setRecordingTime(0);
+    }
   };
 
   const handleSend = async () => {
@@ -90,7 +209,7 @@ const ChatBox = () => {
       </div>
       <h3 className="text-foreground font-medium mb-2">No messages yet</h3>
       <p className="text-muted-foreground text-sm">
-        Ask a question about this call to get started
+        Ask a question about this call or send a voice message to get started
       </p>
     </div>
   );
@@ -153,6 +272,16 @@ const ChatBox = () => {
         </div>
       )}
 
+      {/* Recording indicator */}
+      {isRecording && (
+        <div className="px-4 py-2 bg-red-50 border-t border-red-200">
+          <div className="flex items-center justify-center gap-2 text-sm text-red-600">
+            <div className="h-2 w-2 bg-red-500 rounded-full animate-pulse" />
+            <span>Recording... {formatRecordingTime(recordingTime)}</span>
+          </div>
+        </div>
+      )}
+
       <div className="p-3 border-t border-border flex items-center gap-2">
         <input
           type="text"
@@ -160,16 +289,39 @@ const ChatBox = () => {
           placeholder="Ask about this call..."
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && handleSend()}
-          disabled={isLoading}
+          onKeyDown={(e) => e.key === "Enter" && !isRecording && handleSend()}
+          disabled={isLoading || isRecording}
         />
+        
+        {/* Audio recording button */}
         <Button
-          onClick={handleSend}
-          disabled={input.trim() === "" || isLoading}
+          onClick={isRecording ? stopRecording : startRecording}
+          disabled={isLoading}
           size="sm"
           className={cn(
             "rounded-full h-9 w-9 p-0 flex items-center justify-center",
-            input.trim() === "" ? "bg-muted text-muted-foreground" : "bg-primary hover:bg-primary/90"
+            isRecording 
+              ? "bg-red-500 hover:bg-red-600 text-white animate-pulse" 
+              : "bg-muted hover:bg-muted/80 text-muted-foreground"
+          )}
+        >
+          {isRecording ? (
+            <Square size={16} className="fill-current" />
+          ) : (
+            <Mic size={16} />
+          )}
+        </Button>
+
+        {/* Text send button */}
+        <Button
+          onClick={handleSend}
+          disabled={input.trim() === "" || isLoading || isRecording}
+          size="sm"
+          className={cn(
+            "rounded-full h-9 w-9 p-0 flex items-center justify-center",
+            input.trim() === "" || isRecording 
+              ? "bg-muted text-muted-foreground" 
+              : "bg-primary hover:bg-primary/90"
           )}
         >
           <SendHorizontal size={16} className="text-primary-foreground" />
@@ -180,5 +332,3 @@ const ChatBox = () => {
 };
 
 export default ChatBox;
-
-// export default ChatBox;
