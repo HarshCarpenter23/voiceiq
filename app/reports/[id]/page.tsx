@@ -22,6 +22,7 @@ export default function ReportPage() {
     duration: "",
     caller: "",
     issueSummary: ""
+
   })
   const [sentiment, setSentiment] = useState();
   const [callType, setCallType] = useState();
@@ -31,6 +32,7 @@ export default function ReportPage() {
 
   const exportAsText = (ref: React.RefObject<HTMLDivElement>, fileName: string) => {
     if (!ref.current) return
+
 
     try {
       const element = ref.current
@@ -49,8 +51,6 @@ ${content}
 
       // Create a blob with the text content
       const blob = new Blob([formattedContent], { type: 'text/plain' })
-
-      // Create a download link
       const url = URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = url
@@ -109,7 +109,6 @@ ${content}
         setLoading(false)
       }
     }
-
     if (params.id) {
       fetchData()
     }
@@ -149,7 +148,7 @@ ${content}
       const trimmedLine = line.trim();
       let speaker = "Unknown";
       let text = trimmedLine;
-      
+
       // Check if line starts with "Support Agent:" or "Client:"
       if (trimmedLine.startsWith('Support Agent:')) {
         speaker = "Agent";
@@ -158,7 +157,7 @@ ${content}
         speaker = "Customer";
         text = trimmedLine.replace('Client:', '').trim();
       }
-      
+
       return {
         id: index,
         text: text,
@@ -254,7 +253,6 @@ ${content}
               </button>
             </div>
           </TabsContent>
-
           <TabsContent value="chatbot" className="focus:outline-none">
             <div className="bg-card rounded-lg p-4 h-[calc(100vh-280px)] min-h-[500px] border">
               <ChatBox />
@@ -298,7 +296,6 @@ ${content}
                 </div>
               </div>
 
-              {/* Call Analytics - Mac-inspired design */}
               <div className="col-span-1 space-y-6">
                 <div className="bg-background rounded-lg border shadow-sm overflow-hidden">
                   <div className="bg-background border-b px-4 py-3">
@@ -328,7 +325,6 @@ ${content}
                     </div>
                   </div>
                 </div>
-
                 <div className="bg-background rounded-lg border shadow-sm overflow-hidden">
                   <div className="bg-background border-b px-4 py-3">
                     <h3 className="font-medium text-sm">Audio Analysis</h3>
@@ -343,14 +339,13 @@ ${content}
                             {sentiment === 'frustrated' && '😐'}
                             {sentiment === 'angry' && '😠'}
                             {sentiment === '' && '❓'} {/* fallback if sentiment is empty */}
-                            &nbsp;{sentiment?.charAt(0).toUpperCase() + sentiment?.slice(1)}
+                            &nbsp;{sentiment?.charAt(0).toUpperCase() + sentiment.slice(1)}
                           </span>
                         </div>
                       </div>
                     </div>
                   </div>
                 </div>
-
                 <div className="bg-background rounded-lg border shadow-sm overflow-hidden">
                   <div className="bg-background border-b px-4 py-3">
                     <h3 className="font-medium text-sm">Resources</h3>
