@@ -1,777 +1,379 @@
 "use client"
 
-import { useState, useEffect, useMemo } from "react"
-import { motion, AnimatePresence } from "framer-motion"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import {
-  Download,
-  FileText,
-  Search,
-  ChevronLeft,
-  ChevronRight,
-  Filter,
-  Phone,
-  AudioLines,
-  Play,
-  ArrowRightLeft,
-  Eye,
-  Network,
-  Headset,
-  UserRound,
-  X,
-  ArrowUpDown,
-  ArrowUp,
-  ArrowDown,
-  PhoneIncoming,
-  PhoneOutgoing,
-} from "lucide-react"
-import { useRouter } from "next/navigation"
-import { DateRangePicker } from "@/components/date-range-picker"
-import { useReportStore } from "@/store/reportStore"
+import { useParams } from "next/navigation"
+import { useEffect, useState, useRef } from "react"
+import { DashboardShell } from "@/components/dashboard-shell"
+import ChatBox from "@/components/chat-box"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { CalendarIcon, FileAudio, MessageCircle, Clock, Phone, Info, ArrowDownCircle } from "lucide-react"
+import { cn } from "@/lib/utils"
+// Removing problematic imports
+// import * as htmlToImage from 'html-to-image'
+// import { jsPDF } from "jspdf"
 
-// Simple date utility functions to replace luxon
-const formatDate = (dateString: string) => {
-  if (!dateString) return "N/A"
-  try {
-    const date = new Date(dateString)
-    return date.toLocaleDateString() + " " + date.toLocaleTimeString()
-  } catch {
-    return "N/A"
-  }
-}
-
-const isDateInRange = (callDate: string, fromDate: string, toDate: string) => {
-  if (!fromDate && !toDate) return true
-  if (!callDate) return true
-
-  try {
-    const reportDate = new Date(callDate)
-    const fromDateTime = fromDate ? new Date(fromDate + "T00:00:00") : null
-    const toDateTime = toDate ? new Date(toDate + "T23:59:59") : null
-
-    if (fromDateTime && toDateTime) {
-      return reportDate >= fromDateTime && reportDate <= toDateTime
-    } else if (fromDateTime) {
-      return reportDate >= fromDateTime
-    } else if (toDateTime) {
-      return reportDate <= toDateTime
-    }
-
-    return true
-  } catch {
-    return true
-  }
-}
-
-const ColumnHeader = ({
-  column,
-  icon,
-  label,
-  showSearch = true,
-  columnFilters,
-  columnSorts,
-  handleColumnFilterChange,
-  handleColumnSort,
-}: any) => (
-  <div className="space-y-2">
-    <div className="flex items-center justify-between">
-      <div className="flex items-center gap-1">
-        {icon}
-        <span>{label}</span>
-      </div>
-      <Button
-        variant="ghost"
-        size="icon"
-        className="h-4 w-4 p-0 hover:bg-gray-200 dark:hover:bg-gray-700"
-        onClick={() => handleColumnSort(column)}
-      >
-        {columnSorts[column] === "asc" ? (
-          <ArrowUp className="h-3 w-3" />
-        ) : columnSorts[column] === "desc" ? (
-          <ArrowDown className="h-3 w-3" />
-        ) : (
-          <ArrowUpDown className="h-3 w-3" />
-        )}
-      </Button>
-    </div>
-{showSearch &&
-  (label.toLowerCase().includes("date") ? (
-    <Input
-      type="date"
-      value={columnFilters[column] || ""}
-      onChange={(e) => handleColumnFilterChange(column, e.target.value)}
-      className="h-7 text-xs bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600"
-    />
-  ) : (
-    <Input
-      placeholder={`Filter ${label.toLowerCase()}...`}
-      value={columnFilters[column] || ""}
-      onChange={(e) => handleColumnFilterChange(column, e.target.value)}
-      className="h-7 text-xs bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600"
-    />
-  ))
-}
-  </div>
-)
-
-export default function ReportsPage() {
-  const [searchQuery, setSearchQuery] = useState("")
-  const [reports, setReports] = useState([])
-  const [loading, setLoading] = useState(true)
+export default function ReportPage() {
+  const params = useParams()
+  const [transcription, setTranscription] = useState("")
+  const [calllog, setCalllog] = useState("")
   const [error, setError] = useState("")
-  const [currentPage, setCurrentPage] = useState(1)
-  const [reportsPerPage] = useState(20)
-  const [sortConfig, setSortConfig] = useState({ key: "call_date", direction: "desc" })
-  const [isFilterVisible, setIsFilterVisible] = useState(false)
-  const [fromDate, setFromDate] = useState("")
-  const [toDate, setToDate] = useState("")
+  const [loading, setLoading] = useState(true)
+  const [metadata, setMetadata] = useState({
+    date: "",
+    duration: "",
+    caller: "",
+    issueSummary: ""
 
-  // Individual column filters
-  const [columnFilters, setColumnFilters] = useState({
-    call_date: "",
-    call_type: "",
-    caller_name: "",
-    request_type: "",
-    toll_free_did: "",
-    customer_number: "",
-    caller_sentiment: "",
   })
+  const [sentiment, setSentiment] = useState();
+  const [callType, setCallType] = useState();
 
-  // Individual column sort states
-  const [columnSorts, setColumnSorts] = useState({
-    call_date: "desc",
-    call_type: null,
-    caller_name: null,
-    request_type: null,
-    toll_free_did: null,
-    customer_number: null,
-    caller_sentiment: null,
-  })
+  const transcriptionRef = useRef<HTMLDivElement>(null)
+  const issueSummaryRef = useRef<HTMLDivElement>(null)
 
-  const router = useRouter()
-  const { setSelectedReport } = useReportStore()
+  const exportAsText = (ref: React.RefObject<HTMLDivElement>, fileName: string) => {
+    if (!ref.current) return
 
-  // Blob shape decorations
-  const Blob = ({ className }: any) => (
-    <div className={`absolute blur-3xl opacity-20 rounded-full mix-blend-multiply ${className}`}></div>
-  )
 
-  const fetchReports = async () => {
-    setLoading(true)
     try {
-      const res = await fetch("https://voiceiq-db.indominuslabs.in/logs/all", {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      })
+      const element = ref.current
+      // Extract text content
+      let content = element.innerText || element.textContent || ""
 
-      if (!res.ok) {
-        throw new Error(`HTTP error! status: ${res.status}`)
-      }
+      // Format the content with some basic structure
+      const formattedContent = `
+========================================
+VOICEIQ REPORT - ${fileName}
+Generated on: ${new Date().toLocaleString()}
+========================================
 
-      const data = await res.json()
-      console.log("✅ Data received:", data)
-      setReports(data.data || [])
-    } catch (err) {
-      console.error("❌ Failed to fetch reports:", err)
-      setError("Failed to load reports.")
-    } finally {
-      setLoading(false)
+${content}
+`
+
+      // Create a blob with the text content
+      const blob = new Blob([formattedContent], { type: 'text/plain' })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `${fileName}.txt`
+
+      // Simulate click to trigger download
+      document.body.appendChild(link)
+      link.click()
+
+      // Clean up
+      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
+    } catch (error) {
+      console.error('Error exporting text:', error)
+      alert('Failed to export text. Please try again.')
+    }
+  }
+
+  const exportTranscription = () => {
+    if (transcriptionRef.current) {
+      exportAsText(transcriptionRef, `transcription-${params.id}`)
+    }
+  }
+
+  const exportIssueSummary = () => {
+    if (issueSummaryRef.current) {
+      exportAsText(issueSummaryRef, `issue-summary-${params.id}`)
     }
   }
 
   useEffect(() => {
-    fetchReports()
-  }, [])
+    const fetchData = async () => {
+      try {
+        const res = await fetch(`https://voiceiq-db.indominuslabs.in/logs/${params.id}`)
+        if (!res.ok) {
+          throw new Error(`Error ${res.status}: ${res.statusText}`)
+        }
+        const data = await res.json()
+        const result = data.data[0]
 
-  // Clear date filters
-  const clearDateFilters = () => {
-    setFromDate("")
-    setToDate("")
-    setCurrentPage(1)
-  }
+        setTranscription(result.transcription || "No transcription available")
+        setCalllog(result.call_log || "No call log available")
+        setSentiment(result.caller_sentiment)
+        setCallType(result.request_type)
 
-  // Handle column filter change
-  const handleColumnFilterChange = (column: string, value: string) => {
-    setColumnFilters((prev) => ({
-      ...prev,
-      [column]: value,
-    }))
-    setCurrentPage(1)
-  }
-
-  // Handle column sort
-  const handleColumnSort = (column: string) => {
-    const currentSort = columnSorts[column]
-    let newSort = "asc"
-
-    if (currentSort === "asc") {
-      newSort = "desc"
-    } else if (currentSort === "desc") {
-      newSort = ""
+        // Extract metadata if available
+        setMetadata({
+          date: result.call_date || new Date().toLocaleDateString(),
+          duration: result.call_duration || "Unknown",
+          caller: result.caller_name || "Unknown caller",
+          issueSummary: result.issue_summary || "No issue details available"
+        })
+      } catch (err) {
+        setError(err.message || "Failed to fetch report data")
+      } finally {
+        setLoading(false)
+      }
     }
-
-    // Reset all other column sorts
-    const resetSorts = Object.keys(columnSorts).reduce((acc, key) => {
-      acc[key] = key === column ? newSort : null
-      return acc
-    }, {} as any)
-
-    setColumnSorts(resetSorts)
-
-    // Update main sort config
-    if (newSort) {
-      setSortConfig({ key: column, direction: newSort })
-    } else {
-      setSortConfig({ key: "call_date", direction: "desc" })
+    if (params.id) {
+      fetchData()
     }
+  }, [params.id])
+
+  if (loading) {
+    return (
+      <DashboardShell>
+        <div className="flex items-center justify-center h-[80vh]">
+          <div className="text-center">
+            <div className="h-12 w-12 rounded-full border-t-2 border-b-2 border-primary/30 animate-pulse mx-auto mb-4"></div>
+            <p className="text-sm font-medium text-muted-foreground">Loading report data</p>
+          </div>
+        </div>
+      </DashboardShell>
+    )
   }
 
-  // Clear all filters
-  const clearAllFilters = () => {
-    setColumnFilters({
-      call_date: "",
-      call_type: "",
-      caller_name: "",
-      request_type: "",
-      toll_free_did: "",
-      customer_number: "",
-      caller_sentiment: "",
-    })
-    setSearchQuery("")
-    setFromDate("")
-    setToDate("")
-    setCurrentPage(1)
+  if (error) {
+    return (
+      <DashboardShell>
+        <div className="flex items-center justify-center h-[80vh]">
+          <div className="text-center max-w-md">
+            <p className="text-sm font-medium text-destructive mb-2">Unable to load report</p>
+            <p className="text-xs text-muted-foreground">{error}</p>
+          </div>
+        </div>
+      </DashboardShell>
+    )
   }
 
-  // Simple PDF generation function
-  const generatePDF = async (report: any) => {
-    try {
-      // Create a simple text content for download
-      const content = `
-VOICEIQ REPORT
-==============
+  // Format call logs for better readability - using calllog instead of transcription
+  const formattedTranscription = calllog
+    .split('\n')
+    .filter(line => line.trim().length > 0)
+    .map((line, index) => {
+      const trimmedLine = line.trim();
+      let speaker = "Unknown";
+      let text = trimmedLine;
 
-Caller: ${report.caller_name || "Unknown"}
-Date: ${report.call_date || "N/A"}
-Type: ${report.request_type || "N/A"}
-Sentiment: ${report.caller_sentiment || "N/A"}
-
-Transcription:
-${report.transcription || "No transcription available"}
-
-Call Log:
-${report.call_log || "No call log available"}
-
-Generated: ${new Date().toLocaleString()}
-`
-
-      // Create a blob and download
-      const blob = new (window as any).Blob([content], { type: "text/plain" })
-      const url = URL.createObjectURL(blob)
-      const link = document.createElement("a")
-      link.href = url
-      link.download = `report-${report.caller_name || "unknown"}-${report.id?.slice(0, 8) || "report"}.txt`
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      URL.revokeObjectURL(url)
-    } catch (error) {
-      console.error("Error generating PDF:", error)
-      alert("Failed to generate report. Please try again.")
-    }
-  }
-
-  // Apply sorting
-  const sortedReports = useMemo(() => {
-    return [...reports].sort((a: any, b: any) => {
-      let aValue = a[sortConfig.key] || ""
-      let bValue = b[sortConfig.key] || ""
-
-      // Handle special cases for different data types
-      if (sortConfig.key === "call_date") {
-        aValue = new Date(aValue || 0).getTime()
-        bValue = new Date(bValue || 0).getTime()
-      } else if (typeof aValue === "string") {
-        aValue = aValue.toLowerCase()
-        bValue = (bValue || "").toLowerCase()
+      // Check if line starts with "Support Agent:" or "Client:"
+      if (trimmedLine.startsWith('Support Agent:')) {
+        speaker = "Agent";
+        text = trimmedLine.replace('Support Agent:', '').trim();
+      } else if (trimmedLine.startsWith('Client:')) {
+        speaker = "Customer";
+        text = trimmedLine.replace('Client:', '').trim();
       }
 
-      if (aValue < bValue) {
-        return sortConfig.direction === "asc" ? -1 : 1
-      }
-      if (aValue > bValue) {
-        return sortConfig.direction === "asc" ? 1 : -1
-      }
-      return 0
+      return {
+        id: index,
+        text: text,
+        speaker: speaker
+      };
     })
-  }, [reports, sortConfig])
-
-  // Apply filters
-  const filteredReports = useMemo(() => {
-    return sortedReports.filter((report: any) => {
-      // Global search filter
-      const matchesGlobalSearch =
-        (report.caller_name?.toLowerCase() || "").includes(searchQuery.toLowerCase()) ||
-        (report.request_type?.toLowerCase() || "").includes(searchQuery.toLowerCase())
-
-      // Individual column filters
-      const matchesDateFilter =
-        !columnFilters.call_date ||
-        (report.call_date && report.call_date.toLowerCase().includes(columnFilters.call_date.toLowerCase()))
-
-      const matchesCallType =
-        !columnFilters.call_type ||
-        (report.call_type?.toLowerCase() || "").includes(columnFilters.call_type.toLowerCase())
-
-      const matchesCallerName =
-        !columnFilters.caller_name ||
-        (report.caller_name?.toLowerCase() || "").includes(columnFilters.caller_name.toLowerCase())
-
-      const matchesRequestType =
-        !columnFilters.request_type ||
-        (report.request_type?.toLowerCase() || "").includes(columnFilters.request_type.toLowerCase())
-
-      const matchesTollFreeDid =
-        !columnFilters.toll_free_did ||
-        (report.toll_free_did?.toLowerCase() || "").includes(columnFilters.toll_free_did.toLowerCase())
-
-      const matchesCustomerNumber =
-        !columnFilters.customer_number ||
-        (report.customer_number?.toLowerCase() || "").includes(columnFilters.customer_number.toLowerCase())
-
-      const matchesSentiment =
-        !columnFilters.caller_sentiment ||
-        (report.caller_sentiment?.toLowerCase() || "").includes(columnFilters.caller_sentiment.toLowerCase())
-
-      const matchesDateRange = isDateInRange(report.call_date, fromDate, toDate)
-
-      return (
-        matchesGlobalSearch &&
-        matchesDateFilter &&
-        matchesCallType &&
-        matchesCallerName &&
-        matchesRequestType &&
-        matchesTollFreeDid &&
-        matchesCustomerNumber &&
-        matchesSentiment &&
-        matchesDateRange
-      )
-    })
-  }, [sortedReports, searchQuery, columnFilters, fromDate, toDate])
-
-  // Function to determine sentiment color
-  const getSentimentColor = (sentiment: any) => {
-    if (!sentiment) return "gray"
-
-    const lowerSentiment = sentiment.toLowerCase()
-    if (lowerSentiment.includes("happy") || lowerSentiment.includes("positive")) {
-      return "green"
-    } else if (lowerSentiment.includes("neutral")) {
-      return "blue"
-    } else if (
-      lowerSentiment.includes("angry") ||
-      lowerSentiment.includes("negative") ||
-      lowerSentiment.includes("sad")
-    ) {
-      return "red"
-    } else {
-      return "gray"
-    }
-  }
-
-  // Get current reports for pagination
-  const indexOfLastReport = currentPage * reportsPerPage
-  const indexOfFirstReport = indexOfLastReport - reportsPerPage
-  const currentReports = filteredReports.slice(indexOfFirstReport, indexOfLastReport)
-  const totalPages = Math.ceil(filteredReports.length / reportsPerPage)
-
-  // Change page
-  const paginate = (pageNumber: number) => setCurrentPage(pageNumber)
+    .filter(segment => segment.text.length > 0); // Remove empty segments
 
   return (
-    <div className="relative overflow-hidden min-h-screen p-4">
-      {/* Decorative blobs */}
-      <Blob className="bg-blue-300 w-64 h-64 -top-20 -left-20" />
-      <Blob className="bg-purple-300 w-72 h-72 -bottom-20 -right-20" />
-
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-        <Card className="backdrop-blur-sm bg-white/90 dark:bg-black border border-gray-100 dark:border-gray-800 shadow-xl rounded-2xl">
-          <CardHeader className="border-b border-gray-100 dark:border-gray-800">
-            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.6, delay: 0.1 }}
-              >
-                <CardTitle className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                  All Reports
-                </CardTitle>
-                <CardDescription className="text-gray-500 dark:text-gray-400">
-                  A list of all your generated reports
-                </CardDescription>
-              </motion.div>
-
-              <div className="flex flex-col md:flex-row gap-2 w-full md:w-auto">
-                <motion.div
-                  className="relative w-full md:w-64"
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.6, delay: 0.2 }}
-                >
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <Input
-                    placeholder="Global search..."
-                    className="pl-10 bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded-full focus:ring focus:ring-blue-200 dark:focus:ring-blue-900 transition-all duration-200"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                  />
-                </motion.div>
-
-                <motion.div
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.6, delay: 0.3 }}
-                >
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="rounded-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200"
-                    onClick={() => setIsFilterVisible(!isFilterVisible)}
-                  >
-                    <Filter className="h-4 w-4" />
-                  </Button>
-                </motion.div>
-
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="rounded-full text-xs hover:bg-gray-100 dark:hover:bg-gray-800"
-                  onClick={clearAllFilters}
-                >
-                  <X className="h-3 w-3 mr-1" />
-                  Clear All
-                </Button>
-              </div>
+    <DashboardShell>
+      <div className=" mb-3 max-w-5xl w-full mx-auto px-4">
+        {/* Call Metadata */}
+        <div className="mb-8 mt-2">
+          <h1 className="text-2xl font-light mb-4">Call Report</h1>
+          <div className="flex flex-wrap gap-6 text-sm text-muted-foreground">
+            <div className="flex items-center gap-2">
+              <CalendarIcon size={14} className="text-muted-foreground/70" />
+              <span>{metadata.date}</span>
             </div>
+            <div className="flex items-center gap-2">
+              <Clock size={14} className="text-muted-foreground/70" />
+              <span>{metadata.duration}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Phone size={14} className="text-muted-foreground/70" />
+              <span>{metadata.caller}</span>
+            </div>
+          </div>
+        </div>
 
-            {/* Date Range Filter Panel */}
-            <AnimatePresence>
-              {isFilterVisible && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: "auto", opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.3 }}
-                  className="overflow-hidden"
+        <Tabs defaultValue="transcription" className="w-full">
+          <TabsList className="bg-muted/50 p-1 rounded-lg mb-8">
+            <TabsTrigger
+              value="transcription"
+              className="flex items-center gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm"
+            >
+              <FileAudio size={16} />
+              <span>Transcription</span>
+            </TabsTrigger>
+            <TabsTrigger
+              value="chatbot"
+              className="flex items-center gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm"
+            >
+              <MessageCircle size={16} />
+              <span>Chatbot</span>
+            </TabsTrigger>
+            <TabsTrigger
+              value="calllog"
+              className="data-[state=active]:bg-background data-[state=active]:shadow-sm flex items-center gap-2"
+            >
+              <Info size={16} />
+              <span>Call Details</span>
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="transcription" className="focus:outline-none">
+            <div className="space-y-6 pb-10" ref={transcriptionRef}>
+              {formattedTranscription.map((segment) => (
+                <div
+                  key={segment.id}
+                  className={cn(
+                    "flex gap-4",
+                    segment.speaker === "Customer" ? "flex-row-reverse" : ""
+                  )}
                 >
-                  <div className="pt-4 space-y-4">
-                    <div>
-                      <p className="text-sm font-medium mb-3 text-gray-500">Date Range Filter</p>
-                      <DateRangePicker
-                        fromDate={fromDate}
-                        toDate={toDate}
-                        onFromDateChange={setFromDate}
-                        onToDateChange={setToDate}
-                        onClear={clearDateFilters}
-                      />
+                  <div className={cn(
+                    "h-8 w-8 rounded-full flex items-center justify-center text-xs text-primary-foreground",
+                    segment.speaker === "Agent" ? "bg-primary" : "bg-muted-foreground"
+                  )}>
+                    {segment.speaker[0]}
+                  </div>
+                  <div className={cn(
+                    "max-w-[80%] py-3 px-4 rounded-2xl text-sm",
+                    segment.speaker === "Agent"
+                      ? "bg-muted/50 text-foreground"
+                      : "bg-muted text-foreground"
+                  )}>
+                    <p className="font-medium text-xs mb-1 text-muted-foreground">
+                      {segment.speaker}
+                    </p>
+                    <p>{segment.text}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="flex justify-end mb-6">
+              <button
+                onClick={exportTranscription}
+                className="flex items-center gap-2 text-sm text-primary hover:underline"
+              >
+                <ArrowDownCircle size={16} />
+                <span>Export Transcription</span>
+              </button>
+            </div>
+          </TabsContent>
+          <TabsContent value="chatbot" className="focus:outline-none">
+            <div className="bg-card rounded-lg p-4 h-[calc(100vh-280px)] min-h-[500px] border">
+              <ChatBox />
+            </div>
+          </TabsContent>
+
+          <TabsContent value="calllog" className="focus:outline-none">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-[calc(100vh-280px)] min-h-[500px]">
+              {/* Issue Summary - replaces Call Timeline */}
+              <div className="col-span-2 bg-background rounded-lg border shadow-sm overflow-hidden">
+                <div className="bg-background border-b px-6 py-4 flex items-center justify-between">
+                  <h2 className="font-medium text-lg">Call Issue Summary</h2>
+                  <button
+                    onClick={exportIssueSummary}
+                    className="text-xs text-primary hover:underline flex items-center gap-1"
+                  >
+                    <ArrowDownCircle size={14} />
+                    <span>Export as Text</span>
+                  </button>
+                </div>
+                <div className="p-6 overflow-y-auto h-[calc(100%-56px)]" ref={issueSummaryRef}>
+                  <div className="text-sm leading-relaxed space-y-4">
+                    <div className="bg-muted/30 p-4 rounded-lg border border-muted">
+                      <p>{metadata.issueSummary}</p>
+                    </div>
+
+                    <div className="mt-6">
+                      <h4 className="text-sm font-medium mb-3">Key Points</h4>
+                      <ul className="space-y-2">
+                        {metadata.issueSummary.split('.').filter(sentence => sentence.trim().length > 10).map((point, index) => (
+                          <li key={index} className="flex items-start gap-2">
+                            <div className="h-5 w-5 rounded-full bg-primary/10 text-primary flex items-center justify-center flex-shrink-0 mt-0.5">
+                              <span className="text-xs">{index + 1}</span>
+                            </div>
+                            <p className="text-sm">{point.trim()}.</p>
+                          </li>
+                        ))}
+                      </ul>
                     </div>
                   </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </CardHeader>
+                </div>
+              </div>
 
-          <CardContent className="p-0">
-            <div className="overflow-hidden">
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                      <TableHead className="font-semibold min-w-[200px]">
-                        <ColumnHeader
-                          column="call_date"
-                          icon={<Phone className="h-4 w-4" />}
-                          label="Date"
-                          columnFilters={columnFilters}
-                          columnSorts={columnSorts}
-                          handleColumnFilterChange={handleColumnFilterChange}
-                          handleColumnSort={handleColumnSort}
-                        />
-                      </TableHead>
-                      <TableHead className="font-semibold min-w-[150px]">
-                        <ColumnHeader
-                          column="call_type"
-                          icon={<ArrowRightLeft className="h-4 w-4" />}
-                          label="In/External"
-                          columnFilters={columnFilters}
-                          columnSorts={columnSorts}
-                          handleColumnFilterChange={handleColumnFilterChange}
-                          handleColumnSort={handleColumnSort}
-                        />
-                      </TableHead>
-                      <TableHead className="font-semibold min-w-[180px]">
-                        <ColumnHeader
-                          column="caller_name"
-                          icon={<UserRound className="h-4 w-4" />}
-                          label="Caller Name"
-                          columnFilters={columnFilters}
-                          columnSorts={columnSorts}
-                          handleColumnFilterChange={handleColumnFilterChange}
-                          handleColumnSort={handleColumnSort}
-                        />
-                      </TableHead>
-                      <TableHead className="font-semibold min-w-[150px]">
-                        <ColumnHeader
-                          column="request_type"
-                          icon={<Network className="h-4 w-4" />}
-                          label="Request Type"
-                          columnFilters={columnFilters}
-                          columnSorts={columnSorts}
-                          handleColumnFilterChange={handleColumnFilterChange}
-                          handleColumnSort={handleColumnSort}
-                        />
-                      </TableHead>
-                      <TableHead className="font-semibold min-w-[150px]">
-                        <ColumnHeader
-                          column="toll_free_did"
-                          icon={<Headset className="h-4 w-4" />}
-                          label="Toll Free/DID"
-                          columnFilters={columnFilters}
-                          columnSorts={columnSorts}
-                          handleColumnFilterChange={handleColumnFilterChange}
-                          handleColumnSort={handleColumnSort}
-                        />
-                      </TableHead>
-                      <TableHead className="font-semibold min-w-[170px]">
-                        <ColumnHeader
-                          column="customer_number"
-                          icon={<Phone className="h-4 w-4" />}
-                          label="Customer Number"
-                          columnFilters={columnFilters}
-                          columnSorts={columnSorts}
-                          handleColumnFilterChange={handleColumnFilterChange}
-                          handleColumnSort={handleColumnSort}
-                        />
-                      </TableHead>
-                      <TableHead className="font-semibold min-w-[150px]">
-                        <ColumnHeader
-                          column="caller_sentiment"
-                          icon={<AudioLines className="h-4 w-4" />}
-                          label="Sentiment"
-                          columnFilters={columnFilters}
-                          columnSorts={columnSorts}
-                          handleColumnFilterChange={handleColumnFilterChange}
-                          handleColumnSort={handleColumnSort}
-                        />
-                      </TableHead>
-                      <TableHead className="font-semibold text-center min-w-[120px]">
-                        <div className="flex justify-center items-center gap-1">
-                          <Play className="h-4 w-4" />
-                          <span>Actions</span>
+              <div className="col-span-1 space-y-6">
+                <div className="bg-background rounded-lg border shadow-sm overflow-hidden">
+                  <div className="bg-background border-b px-4 py-3">
+                    <h3 className="font-medium text-sm">Call Summary</h3>
+                  </div>
+                  <div className="p-4">
+                    <div className="space-y-4">
+                      <div>
+                        <p className="text-xs text-muted-foreground mb-1">Call Type</p>
+                        <p className="text-sm font-medium">{callType?.charAt(0).toUpperCase() + callType?.slice(1)}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground mb-1">Call Result</p>
+                        <div className="flex items-center">
+                          <div className="h-2 w-2 rounded-full bg-green-500 mr-2"></div>
+                          <p className="text-sm font-medium">Resolved</p>
                         </div>
-                      </TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody className="text-[0.9rem]">
-                    {loading ? (
-                      <TableRow>
-                        <TableCell colSpan={8} className="h-32">
-                          <div className="flex flex-col items-center justify-center">
-                            <div className="h-8 w-8 rounded-full border-2 border-blue-500 border-r-transparent animate-spin"></div>
-                            <p className="mt-2 text-sm text-gray-500">Loading reports...</p>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ) : error ? (
-                      <TableRow>
-                        <TableCell colSpan={8} className="h-32 text-center">
-                          <div className="flex flex-col items-center justify-center">
-                            <div className="rounded-full bg-red-100 p-3">
-                              <svg
-                                className="h-6 w-6 text-red-500"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M12 9v2m0 4h.01m-6.938-9H18a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V8a2 2 0 012-2z"
-                                />
-                              </svg>
-                            </div>
-                            <p className="mt-2 text-red-500 font-medium">{error}</p>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ) : currentReports.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={8} className="h-32 text-center">
-                          <div className="flex flex-col items-center justify-center">
-                            <div className="rounded-full bg-gray-100 dark:bg-gray-800 p-3">
-                              <FileText className="h-6 w-6 text-gray-400" />
-                            </div>
-                            <p className="mt-2 text-gray-500">No reports found.</p>
-                            {(fromDate || toDate || Object.values(columnFilters).some((f) => f)) && (
-                              <p className="text-xs text-gray-400 mt-1">Try adjusting your filters</p>
-                            )}
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      currentReports.map((report: any) => {
-                        const sentimentColor = getSentimentColor(report.caller_sentiment)
-
-                        return (
-                          <TableRow
-                            key={report.id}
-                            className="group hover:bg-gray-50/50 dark:hover:bg-gray-800/20 transition-all duration-200 text-[0.9rem]"
-                          >
-                            <TableCell className="text-gray-600 dark:text-gray-300">
-                              {formatDate(report.call_date)}
-                            </TableCell>
-                            <TableCell className="text-gray-600 dark:text-gray-300">
-                              <div className="flex items-center gap-2">
-                                {report.call_type === "in" ? (
-                                  <>
-                                    <PhoneIncoming className="w-4 h-4 text-green-500" />
-                                    In
-                                  </>
-                                ) : report.call_type === "external" ? (
-                                  <>
-                                    <PhoneOutgoing className="w-4 h-4 text-red-500" />
-                                    External
-                                  </>
-                                ) : (
-                                  report.call_type || "N/A"
-                                )}
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <Button
-                                variant="ghost"
-                                className="px-0 font-medium text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors duration-200 text-[1.1rem]"
-                                onClick={() => {
-                                  setSelectedReport(report)
-                                  router.push(`/reports/${report.id}`)
-                                }}
-                              >
-                                {report.caller_name || "Unknown"}
-                              </Button>
-                            </TableCell>
-                            <TableCell className="text-gray-600 dark:text-gray-300">
-                              {report.request_type?.charAt(0).toUpperCase() + report.request_type?.slice(1) || "N/A"}
-                            </TableCell>
-                            <TableCell className="text-gray-600 dark:text-gray-300">
-                              {report.toll_free_did || "N/A"}
-                            </TableCell>
-                            <TableCell className="text-gray-600 dark:text-gray-300">
-                              {report.customer_number || "N/A"}
-                            </TableCell>
-
-                            <TableCell>
-                              <span
-                                className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium transition-all duration-200 ${
-                                  sentimentColor === "green"
-                                    ? "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300"
-                                    : sentimentColor === "red"
-                                      ? "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300"
-                                      : sentimentColor === "blue"
-                                        ? "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300"
-                                        : "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300"
-                                }`}
-                              >
-                                {report.caller_sentiment?.charAt(0).toUpperCase() + report.caller_sentiment?.slice(1) ||
-                                  "Unknown"}
-                              </span>
-                            </TableCell>
-                            <TableCell className="text-center">
-                              <div className="flex justify-center gap-1 transition-opacity duration-200">
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200"
-                                  onClick={() => {
-                                    setSelectedReport(report)
-                                    router.push(`/reports/${report.id}`)
-                                  }}
-                                  title="View Report"
-                                >
-                                  <Eye className="h-4 w-4 text-gray-500" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200"
-                                  onClick={() => generatePDF(report)}
-                                  title="Download Report"
-                                >
-                                  <Download className="h-4 w-4 text-gray-500" />
-                                </Button>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        )
-                      })
-                    )}
-                  </TableBody>
-                </Table>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground mb-1">Topics Discussed</p>
+                        <div className="flex flex-wrap gap-2 mt-1">
+                          <span className="text-xs px-2 py-1 rounded-full bg-muted">Product Features</span>
+                          <span className="text-xs px-2 py-1 rounded-full bg-muted">Technical Support</span>
+                          <span className="text-xs px-2 py-1 rounded-full bg-muted">Account Setup</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-background rounded-lg border shadow-sm overflow-hidden">
+                  <div className="bg-background border-b px-4 py-3">
+                    <h3 className="font-medium text-sm">Audio Analysis</h3>
+                  </div>
+                  <div className="p-4">
+                    <div className="space-y-3">
+                      <div>
+                        <div className="flex justify-between text-xs mb-1">
+                          <span className="text-muted-foreground">Sentiment</span>
+                          <span className="font-2xl">
+                            {sentiment === 'happy' && '😊'}
+                            {sentiment === 'frustrated' && '😐'}
+                            {sentiment === 'angry' && '😠'}
+                            {sentiment === '' && '❓'} {/* fallback if sentiment is empty */}
+                            &nbsp;{sentiment?.charAt(0).toUpperCase() + sentiment.slice(1)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-background rounded-lg border shadow-sm overflow-hidden">
+                  <div className="bg-background border-b px-4 py-3">
+                    <h3 className="font-medium text-sm">Resources</h3>
+                  </div>
+                  <div className="p-4">
+                    <div className="space-y-3">
+                      <button
+                        onClick={exportTranscription}
+                        className="flex items-center gap-2 text-sm text-primary w-full hover:underline"
+                      >
+                        <ArrowDownCircle size={14} />
+                        <span>Export Transcript as Text</span>
+                      </button>
+                      <button
+                        onClick={exportIssueSummary}
+                        className="flex items-center gap-2 text-sm text-primary w-full hover:underline"
+                      >
+                        <ArrowDownCircle size={14} />
+                        <span>Export Issue Summary as Text</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
-
-            {/* Pagination */}
-            {!loading && !error && filteredReports.length > 0 && (
-              <div className="px-4 py-4 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between">
-                <div className="text-sm text-gray-500">
-                  Showing <span className="font-medium">{indexOfFirstReport + 1}</span> to{" "}
-                  <span className="font-medium">{Math.min(indexOfLastReport, filteredReports.length)}</span> of{" "}
-                  <span className="font-medium">{filteredReports.length}</span> reports
-                </div>
-                <div className="flex items-center gap-1">
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-8 w-8 rounded-full"
-                    onClick={() => paginate(Math.max(1, currentPage - 1))}
-                    disabled={currentPage === 1}
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                  </Button>
-                  {[...Array(Math.min(totalPages, 5))].map((_, i) => {
-                    const pageNumber = i + 1
-                    return (
-                      <Button
-                        key={`page-${pageNumber}`}
-                        variant={currentPage === pageNumber ? "default" : "outline"}
-                        size="icon"
-                        className={`h-8 w-8 rounded-full ${currentPage === pageNumber ? "bg-gradient-to-r from-blue-500 to-purple-500" : ""}`}
-                        onClick={() => paginate(pageNumber)}
-                      >
-                        {pageNumber}
-                      </Button>
-                    )
-                  })}
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-8 w-8 rounded-full"
-                    onClick={() => paginate(Math.min(totalPages, currentPage + 1))}
-                    disabled={currentPage === totalPages}
-                  >
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </motion.div>
-    </div>
+          </TabsContent>
+        </Tabs>
+      </div>
+    </DashboardShell>
   )
 }
