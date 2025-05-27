@@ -6,21 +6,14 @@ import { Button } from "./ui/button";
 import { SendHorizontal, Loader2, Mic, MicOff, Square } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-type Message = {
-  type: "user" | "bot";
-  text: string;
-  timestamp: string;
-  isAudio?: boolean;
-};
 
-const ChatBox = () => {
+const ChatBox = ({ messages, setMessages }) => {
   const params = useParams();
   const uuid = params?.id as string;
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
 
-  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
@@ -65,7 +58,7 @@ const ChatBox = () => {
 
       mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
-          audioChunksRef.current.push(event.data);
+          audioChunksRef.current.push(event.data); 
         }
       };
 

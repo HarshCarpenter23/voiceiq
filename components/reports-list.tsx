@@ -708,7 +708,7 @@ export function ReportsList() {
                             className="group hover:bg-gray-50/50 dark:hover:bg-gray-800/20 transition-all duration-200 text-[0.9rem]"
                           >
                             <TableCell className="text-gray-600 dark:text-gray-300">
-                              {report.call_date || "N/A"}
+                              {report.call_date || "-"}
                             </TableCell>
                             <TableCell className="text-gray-600 dark:text-gray-300">
                               <div className="flex items-center gap-2">
@@ -736,17 +736,17 @@ export function ReportsList() {
                                   router.push(`/reports/${report.id}`)
                                 }}
                               >
-                                {report.caller_name}
+                                {report.caller_name === "null" ? "-" : report.caller_name}
                               </Button>
                             </TableCell>
                             <TableCell className="text-gray-600 dark:text-gray-300">
-                              {report.request_type?.charAt(0).toUpperCase() + report.request_type?.slice(1) || "N/A"}
+                              {report.request_type?.charAt(0).toUpperCase() + report.request_type?.slice(1) || "-"}
                             </TableCell>
                             <TableCell className="text-gray-600 dark:text-gray-300">
-                              {report.toll_free_did || "N/A"}
+                              {report.toll_free_did || "-"}
                             </TableCell>
                             <TableCell className="text-gray-600 dark:text-gray-300">
-                              {report.customer_number || "N/A"}
+                              {report.customer_number || "-"}
                             </TableCell>
 
                             <TableCell>

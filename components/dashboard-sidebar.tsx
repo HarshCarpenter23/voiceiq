@@ -28,7 +28,7 @@ export function DashboardSidebar() {
   const [userName, setUserName] = useState("User")
   const [userEmail, setUserEmail] = useState("john@example.com")
   const [imageUrl, setImageUrl] = useState("")
-  const [collapsed, setCollapsed] = useState(false)
+  const [collapsed, setCollapsed] = useState(true)
   
   const mainRoutes = [
     // { title: "Dashboard", icon: Home, href: "/", badge: null },
@@ -164,7 +164,7 @@ export function DashboardSidebar() {
                             <div className="flex items-center justify-between w-full">
                               <span>{route.title}</span>
                               {route.badge && (
-                                <Badge variant="default" className="ml-auto h-5 bg-blue-500 hover:bg-blue-600">
+                                <Badge variant="default" className="ml-auto h-8 bg-blue-500 hover:bg-blue-600">
                                   {route.badge}
                                 </Badge>
                               )}
@@ -178,7 +178,7 @@ export function DashboardSidebar() {
                         <div className="flex items-center gap-2">
                           <span>{route.title}</span>
                           {route.badge && (
-                            <Badge variant="default" className="h-5 bg-blue-500">
+                            <Badge variant="default" className="h-8 bg-blue-500">
                               {route.badge}
                             </Badge>
                           )}

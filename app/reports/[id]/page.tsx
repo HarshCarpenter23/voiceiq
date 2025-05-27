@@ -11,6 +11,13 @@ import { cn } from "@/lib/utils"
 // import * as htmlToImage from 'html-to-image'
 // import { jsPDF } from "jspdf"
 
+type Message = {
+  type: "user" | "bot";
+  text: string;
+  timestamp: string;
+  isAudio?: boolean;
+};
+
 export default function ReportPage() {
   const params = useParams()
   const [transcription, setTranscription] = useState("")
@@ -18,14 +25,17 @@ export default function ReportPage() {
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(true)
   const [metadata, setMetadata] = useState({
-    date: "",
-    duration: "",
+    call_date: "",
+    filename: "",
     caller: "",
     issueSummary: ""
 
   })
   const [sentiment, setSentiment] = useState();
   const [callType, setCallType] = useState();
+
+  
+  const [messages, setMessages] = useState<Message[]>([]);
 
   const transcriptionRef = useRef<HTMLDivElement>(null)
   const issueSummaryRef = useRef<HTMLDivElement>(null)
@@ -98,8 +108,8 @@ ${content}
 
         // Extract metadata if available
         setMetadata({
-          date: result.call_date || new Date().toLocaleDateString(),
-          duration: result.call_duration || "Unknown",
+          call_date: result.call_date || new Date().toLocaleDateString(),
+          filename: result.filename || "Unknown",
           caller: result.caller_name || "Unknown caller",
           issueSummary: result.issue_summary || "No issue details available"
         })
@@ -168,22 +178,22 @@ ${content}
 
   return (
     <DashboardShell>
-      <div className=" mb-3 max-w-5xl w-full mx-auto px-4">
+      <div className=" mb-3 w-full mx-auto px-4">
         {/* Call Metadata */}
         <div className="mb-8 mt-2">
           <h1 className="text-2xl font-light mb-4">Call Report</h1>
           <div className="flex flex-wrap gap-6 text-sm text-muted-foreground">
             <div className="flex items-center gap-2">
               <CalendarIcon size={14} className="text-muted-foreground/70" />
-              <span>{metadata.date}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Clock size={14} className="text-muted-foreground/70" />
-              <span>{metadata.duration}</span>
+              <span>{metadata.call_date}</span>
             </div>
             <div className="flex items-center gap-2">
               <Phone size={14} className="text-muted-foreground/70" />
               <span>{metadata.caller}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <FileAudio size={14} className="text-muted-foreground/70" />
+              <span>{metadata.filename}</span>
             </div>
           </div>
         </div>
@@ -255,7 +265,7 @@ ${content}
           </TabsContent>
           <TabsContent value="chatbot" className="focus:outline-none">
             <div className="bg-card rounded-lg p-4 h-[calc(100vh-280px)] min-h-[500px] border">
-              <ChatBox />
+              <ChatBox messages={messages} setMessages={setMessages} />
             </div>
           </TabsContent>
 
