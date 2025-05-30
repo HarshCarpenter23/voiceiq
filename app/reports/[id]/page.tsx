@@ -290,10 +290,101 @@ ${content}
 
           <TabsContent value="calllog" className="focus:outline-none">
             {callDetailsLoading ? (
-              <div className="flex items-center justify-center h-[calc(100vh-280px)] min-h-[500px]">
-                <div className="text-center">
-                  <div className="h-8 w-8 rounded-full border-t-2 border-b-2 border-primary/30 animate-spin mx-auto mb-3"></div>
-                  <p className="text-sm text-muted-foreground">Loading call details...</p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-[calc(100vh-280px)] min-h-[500px]">
+                {/* Issue Summary Skeleton */}
+                <div className="col-span-2 bg-background rounded-lg border shadow-sm overflow-hidden">
+                  <div className="bg-background border-b px-6 py-4 flex items-center justify-between">
+                    <div className="h-6 bg-muted rounded animate-pulse w-48"></div>
+                    <div className="h-4 bg-muted rounded animate-pulse w-24"></div>
+                  </div>
+                  <div className="p-6 space-y-4">
+                    <div className="bg-muted/30 p-4 rounded-lg border border-muted">
+                      <div className="space-y-2">
+                        <div className="h-4 bg-muted rounded animate-pulse w-full"></div>
+                        <div className="h-4 bg-muted rounded animate-pulse w-4/5"></div>
+                        <div className="h-4 bg-muted rounded animate-pulse w-3/4"></div>
+                      </div>
+                    </div>
+                    <div className="mt-6">
+                      <div className="h-5 bg-muted rounded animate-pulse w-24 mb-3"></div>
+                      <div className="space-y-3">
+                        {[...Array(3)].map((_, i) => (
+                          <div key={i} className="flex items-start gap-2">
+                            <div className="h-5 w-5 rounded-full bg-muted animate-pulse flex-shrink-0 mt-0.5"></div>
+                            <div className="flex-1">
+                              <div className="h-4 bg-muted rounded animate-pulse w-full"></div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Sidebar Skeletons */}
+                <div className="col-span-1 space-y-6">
+                  {/* Call Summary Skeleton */}
+                  <div className="bg-background rounded-lg border shadow-sm overflow-hidden">
+                    <div className="bg-background border-b px-4 py-3">
+                      <div className="h-5 bg-muted rounded animate-pulse w-24"></div>
+                    </div>
+                    <div className="p-4">
+                      <div className="space-y-4">
+                        {[...Array(5)].map((_, i) => (
+                          <div key={i}>
+                            <div className="h-3 bg-muted rounded animate-pulse w-20 mb-1"></div>
+                            <div className="h-4 bg-muted rounded animate-pulse w-full"></div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Contact Information Skeleton */}
+                  <div className="bg-background rounded-lg border shadow-sm overflow-hidden">
+                    <div className="bg-background border-b px-4 py-3">
+                      <div className="h-5 bg-muted rounded animate-pulse w-32"></div>
+                    </div>
+                    <div className="p-4">
+                      <div className="space-y-3">
+                        {[...Array(2)].map((_, i) => (
+                          <div key={i}>
+                            <div className="h-3 bg-muted rounded animate-pulse w-24 mb-1"></div>
+                            <div className="h-4 bg-muted rounded animate-pulse w-full"></div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Audio Analysis Skeleton */}
+                  <div className="bg-background rounded-lg border shadow-sm overflow-hidden">
+                    <div className="bg-background border-b px-4 py-3">
+                      <div className="h-5 bg-muted rounded animate-pulse w-28"></div>
+                    </div>
+                    <div className="p-4">
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-center">
+                          <div className="h-3 bg-muted rounded animate-pulse w-16"></div>
+                          <div className="h-4 bg-muted rounded animate-pulse w-20"></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Resources Skeleton */}
+                  <div className="bg-background rounded-lg border shadow-sm overflow-hidden">
+                    <div className="bg-background border-b px-4 py-3">
+                      <div className="h-5 bg-muted rounded animate-pulse w-20"></div>
+                    </div>
+                    <div className="p-4">
+                      <div className="space-y-3">
+                        {[...Array(2)].map((_, i) => (
+                          <div key={i} className="h-4 bg-muted rounded animate-pulse w-full"></div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             ) : (
