@@ -6,7 +6,6 @@ import { Button } from "./ui/button";
 import { SendHorizontal, Loader2, Mic, MicOff, Square } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-
 const ChatBox = ({ messages, setMessages }) => {
   const params = useParams();
   const uuid = params?.id as string;
@@ -101,14 +100,16 @@ const ChatBox = ({ messages, setMessages }) => {
   };
 
   const sendAudioMessage = async (audioBlob: Blob) => {
-    const userMessage: Message = { 
+    // Initially add a placeholder message with loading animation
+    const placeholderMessage: Message = { 
       type: "user", 
-      text: "🎤 Voice message",
+      text: "",
       timestamp: formatTimestamp(),
-      isAudio: true
+      isAudio: true,
+      isProcessing: true
     };
     
-    setMessages((prev) => [...prev, userMessage]);
+    setMessages((prev) => [...prev, placeholderMessage]);
     setIsLoading(true);
 
     try {
@@ -124,16 +125,68 @@ const ChatBox = ({ messages, setMessages }) => {
 
       const data = await res.json();
 
-      const botMessage: Message = {
-        type: "bot",
-        text: data.status === "success" 
-          ? data.content 
-          : "Sorry, I couldn't process that audio message.",
-        timestamp: formatTimestamp()
-      };
-      
-      setMessages((prev) => [...prev, botMessage]);
+      if (data.status === "success") {
+        // Update the placeholder message with the actual user prompt
+        setMessages((prev) => {
+          const updatedMessages = [...prev];
+          const lastMessageIndex = updatedMessages.length - 1;
+          
+          // Update the user message with the transcribed text
+          updatedMessages[lastMessageIndex] = {
+            ...updatedMessages[lastMessageIndex],
+            text: data.user_prompt || "Voice message processed",
+            isProcessing: false
+          };
+          
+          return updatedMessages;
+        });
+
+        // Add bot response
+        const botMessage: Message = {
+          type: "bot",
+          text: data.content,
+          timestamp: formatTimestamp()
+        };
+        
+        setMessages((prev) => [...prev, botMessage]);
+      } else {
+        // Update placeholder with error message
+        setMessages((prev) => {
+          const updatedMessages = [...prev];
+          const lastMessageIndex = updatedMessages.length - 1;
+          
+          updatedMessages[lastMessageIndex] = {
+            ...updatedMessages[lastMessageIndex],
+            text: "Failed to process voice message",
+            isProcessing: false
+          };
+          
+          return updatedMessages;
+        });
+
+        const errorMessage: Message = {
+          type: "bot",
+          text: "Sorry, I couldn't process that audio message.",
+          timestamp: formatTimestamp()
+        };
+        
+        setMessages((prev) => [...prev, errorMessage]);
+      }
     } catch (err) {
+      // Update placeholder with error message
+      setMessages((prev) => {
+        const updatedMessages = [...prev];
+        const lastMessageIndex = updatedMessages.length - 1;
+        
+        updatedMessages[lastMessageIndex] = {
+          ...updatedMessages[lastMessageIndex],
+          text: "Network error occurred",
+          isProcessing: false
+        };
+        
+        return updatedMessages;
+      });
+
       const errorMessage: Message = {
         type: "bot", 
         text: "Network error. Please try again later.",
@@ -237,7 +290,20 @@ const ChatBox = ({ messages, setMessages }) => {
                         : "bg-muted text-foreground mr-auto rounded-tl-none"
                     )}
                   >
-                    {msg.text}
+                    {msg.isProcessing ? (
+                      <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1">
+                          <div className="h-3 w-1 bg-current rounded-full animate-pulse" style={{ animationDelay: '0ms', animationDuration: '1.2s' }}></div>
+                          <div className="h-4 w-1 bg-current rounded-full animate-pulse" style={{ animationDelay: '200ms', animationDuration: '1.2s' }}></div>
+                          <div className="h-3 w-1 bg-current rounded-full animate-pulse" style={{ animationDelay: '400ms', animationDuration: '1.2s' }}></div>
+                          <div className="h-2 w-1 bg-current rounded-full animate-pulse" style={{ animationDelay: '600ms', animationDuration: '1.2s' }}></div>
+                          <div className="h-3 w-1 bg-current rounded-full animate-pulse" style={{ animationDelay: '800ms', animationDuration: '1.2s' }}></div>
+                        </div>
+                        <span className="text-xs opacity-75">Processing audio...</span>
+                      </div>
+                    ) : (
+                      msg.text
+                    )}
                   </div>
                   <span className="text-xs text-muted-foreground mt-1 px-1">
                     {msg.timestamp}
@@ -292,16 +358,16 @@ const ChatBox = ({ messages, setMessages }) => {
           disabled={isLoading}
           size="sm"
           className={cn(
-            "rounded-full h-9 w-9 p-0 flex items-center justify-center",
+            "rounded-full h-10 w-10 p-0 flex items-center justify-center flex-shrink-0",
             isRecording 
               ? "bg-red-500 hover:bg-red-600 text-white animate-pulse" 
               : "bg-muted hover:bg-muted/80 text-muted-foreground"
           )}
         >
           {isRecording ? (
-            <Square size={16} className="fill-current" />
+            <Square size={18} className="fill-current" />
           ) : (
-            <Mic size={16} />
+            <Mic size={18} />
           )}
         </Button>
 
@@ -311,13 +377,13 @@ const ChatBox = ({ messages, setMessages }) => {
           disabled={input.trim() === "" || isLoading || isRecording}
           size="sm"
           className={cn(
-            "rounded-full h-9 w-9 p-0 flex items-center justify-center",
+            "rounded-full h-10 w-10 p-0 flex items-center justify-center flex-shrink-0",
             input.trim() === "" || isRecording 
               ? "bg-muted text-muted-foreground" 
               : "bg-primary hover:bg-primary/90"
           )}
         >
-          <SendHorizontal size={16} className="text-primary-foreground" />
+          <SendHorizontal size={18} className="text-primary-foreground" />
         </Button>
       </div>
     </div>

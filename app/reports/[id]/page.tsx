@@ -7,9 +7,6 @@ import ChatBox from "@/components/chat-box"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { CalendarIcon, FileAudio, MessageCircle, Clock, Phone, Info, ArrowDownCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
-// Removing problematic imports
-// import * as htmlToImage from 'html-to-image'
-// import { jsPDF } from "jspdf"
 
 type Message = {
   type: "user" | "bot";
@@ -24,12 +21,18 @@ export default function ReportPage() {
   const [calllog, setCalllog] = useState("")
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(true)
+  const [callDetailsLoading, setCallDetailsLoading] = useState(false)
   const [metadata, setMetadata] = useState({
     call_date: "",
     filename: "",
     caller: "",
-    issueSummary: ""
-
+    issueSummary: "",
+    responder_name: "",
+    call_type: "",
+    toll_free_did: "",
+    customer_number: "",
+    call_start_time: "",
+    call_id: ""
   })
   const [sentiment, setSentiment] = useState();
   const [callType, setCallType] = useState();
@@ -42,7 +45,6 @@ export default function ReportPage() {
 
   const exportAsText = (ref: React.RefObject<HTMLDivElement>, fileName: string) => {
     if (!ref.current) return
-
 
     try {
       const element = ref.current
@@ -91,6 +93,16 @@ ${content}
     }
   }
 
+  const handleTabChange = (value: string) => {
+    if (value === 'calllog') {
+      setCallDetailsLoading(true)
+      // Simulate processing time for smooth transition
+      setTimeout(() => {
+        setCallDetailsLoading(false)
+      }, 300)
+    }
+  }
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -106,12 +118,18 @@ ${content}
         setSentiment(result.caller_sentiment)
         setCallType(result.request_type)
 
-        // Extract metadata if available
+        // Extract comprehensive metadata
         setMetadata({
           call_date: result.call_date || new Date().toLocaleDateString(),
           filename: result.filename || "Unknown",
           caller: result.caller_name || "Unknown caller",
-          issueSummary: result.issue_summary || "No issue details available"
+          issueSummary: result.issue_summary || "No issue details available",
+          responder_name: result.responder_name || "Unknown",
+          call_type: result.call_type || "Unknown",
+          toll_free_did: result.toll_free_did || "N/A",
+          customer_number: result.customer_number || "N/A",
+          call_start_time: result.call_start_time || "N/A",
+          call_id: result.call_id || "N/A"
         })
       } catch (err) {
         setError(err.message || "Failed to fetch report data")
@@ -198,7 +216,7 @@ ${content}
           </div>
         </div>
 
-        <Tabs defaultValue="transcription" className="w-full">
+        <Tabs defaultValue="transcription" className="w-full" onValueChange={handleTabChange}>
           <TabsList className="bg-muted/50 p-1 rounded-lg mb-8">
             <TabsTrigger
               value="transcription"
@@ -263,6 +281,7 @@ ${content}
               </button>
             </div>
           </TabsContent>
+          
           <TabsContent value="chatbot" className="focus:outline-none">
             <div className="bg-card rounded-lg p-4 h-[calc(100vh-280px)] min-h-[500px] border">
               <ChatBox messages={messages} setMessages={setMessages} />
@@ -270,117 +289,153 @@ ${content}
           </TabsContent>
 
           <TabsContent value="calllog" className="focus:outline-none">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-[calc(100vh-280px)] min-h-[500px]">
-              {/* Issue Summary - replaces Call Timeline */}
-              <div className="col-span-2 bg-background rounded-lg border shadow-sm overflow-hidden">
-                <div className="bg-background border-b px-6 py-4 flex items-center justify-between">
-                  <h2 className="font-medium text-lg">Call Issue Summary</h2>
-                  <button
-                    onClick={exportIssueSummary}
-                    className="text-xs text-primary hover:underline flex items-center gap-1"
-                  >
-                    <ArrowDownCircle size={14} />
-                    <span>Export as Text</span>
-                  </button>
+            {callDetailsLoading ? (
+              <div className="flex items-center justify-center h-[calc(100vh-280px)] min-h-[500px]">
+                <div className="text-center">
+                  <div className="h-8 w-8 rounded-full border-t-2 border-b-2 border-primary/30 animate-spin mx-auto mb-3"></div>
+                  <p className="text-sm text-muted-foreground">Loading call details...</p>
                 </div>
-                <div className="p-6 overflow-y-auto h-[calc(100%-56px)]" ref={issueSummaryRef}>
-                  <div className="text-sm leading-relaxed space-y-4">
-                    <div className="bg-muted/30 p-4 rounded-lg border border-muted">
-                      <p>{metadata.issueSummary}</p>
-                    </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-[calc(100vh-280px)] min-h-[500px]">
+                {/* Issue Summary - replaces Call Timeline */}
+                <div className="col-span-2 bg-background rounded-lg border shadow-sm overflow-hidden">
+                  <div className="bg-background border-b px-6 py-4 flex items-center justify-between">
+                    <h2 className="font-medium text-lg">Call Issue Summary</h2>
+                    <button
+                      onClick={exportIssueSummary}
+                      className="text-xs text-primary hover:underline flex items-center gap-1"
+                    >
+                      <ArrowDownCircle size={14} />
+                      <span>Export as Text</span>
+                    </button>
+                  </div>
+                  <div className="p-6 overflow-y-auto h-[calc(100%-56px)]" ref={issueSummaryRef}>
+                    <div className="text-sm leading-relaxed space-y-4">
+                      <div className="bg-muted/30 p-4 rounded-lg border border-muted">
+                        <p>{metadata.issueSummary}</p>
+                      </div>
 
-                    <div className="mt-6">
-                      <h4 className="text-sm font-medium mb-3">Key Points</h4>
-                      <ul className="space-y-2">
-                        {metadata.issueSummary.split('.').filter(sentence => sentence.trim().length > 10).map((point, index) => (
-                          <li key={index} className="flex items-start gap-2">
-                            <div className="h-5 w-5 rounded-full bg-primary/10 text-primary flex items-center justify-center flex-shrink-0 mt-0.5">
-                              <span className="text-xs">{index + 1}</span>
-                            </div>
-                            <p className="text-sm">{point.trim()}.</p>
-                          </li>
-                        ))}
-                      </ul>
+                      <div className="mt-6">
+                        <h4 className="text-sm font-medium mb-3">Key Points</h4>
+                        <ul className="space-y-2">
+                          {metadata.issueSummary.split('.').filter(sentence => sentence.trim().length > 10).map((point, index) => (
+                            <li key={index} className="flex items-start gap-2">
+                              <div className="h-5 w-5 rounded-full bg-primary/10 text-primary flex items-center justify-center flex-shrink-0 mt-0.5">
+                                <span className="text-xs">{index + 1}</span>
+                              </div>
+                              <p className="text-sm">{point.trim()}.</p>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="col-span-1 space-y-6">
+                  <div className="bg-background rounded-lg border shadow-sm overflow-hidden">
+                    <div className="bg-background border-b px-4 py-3">
+                      <h3 className="font-medium text-sm">Call Summary</h3>
+                    </div>
+                    <div className="p-4">
+                      <div className="space-y-4">
+                        <div>
+                          <p className="text-xs text-muted-foreground mb-1">Request Type</p>
+                          <p className="text-sm font-medium">{callType?.charAt(0).toUpperCase() + callType?.slice(1) || "N/A"}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground mb-1">Call Direction</p>
+                          <div className="flex items-center">
+                            <div className={cn(
+                              "h-2 w-2 rounded-full mr-2",
+                              metadata.call_type === "in" ? "bg-blue-500" : "bg-green-500"
+                            )}></div>
+                            <p className="text-sm font-medium capitalize">{metadata.call_type === "in" ? "Incoming" : "Outgoing"}</p>
+                          </div>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground mb-1">Agent</p>
+                          <p className="text-sm font-medium">{metadata.responder_name}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground mb-1">Call Start Time</p>
+                          <p className="text-sm font-medium">{metadata.call_start_time}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground mb-1">Call ID</p>
+                          <p className="text-sm font-mono text-xs bg-muted px-2 py-1 rounded">{metadata.call_id}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-background rounded-lg border shadow-sm overflow-hidden">
+                    <div className="bg-background border-b px-4 py-3">
+                      <h3 className="font-medium text-sm">Contact Information</h3>
+                    </div>
+                    <div className="p-4">
+                      <div className="space-y-3">
+                        <div>
+                          <p className="text-xs text-muted-foreground mb-1">Customer Number</p>
+                          <p className="text-sm font-mono">{metadata.customer_number}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground mb-1">Toll-Free DID</p>
+                          <p className="text-sm font-mono">{metadata.toll_free_did}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-background rounded-lg border shadow-sm overflow-hidden">
+                    <div className="bg-background border-b px-4 py-3">
+                      <h3 className="font-medium text-sm">Audio Analysis</h3>
+                    </div>
+                    <div className="p-4">
+                      <div className="space-y-3">
+                        <div>
+                          <div className="flex justify-between text-xs mb-1">
+                            <span className="text-muted-foreground">Sentiment</span>
+                            <span className="font-medium">
+                              {sentiment === 'happy' && '😊'}
+                              {sentiment === 'frustrated' && '😐'}
+                              {sentiment === 'angry' && '😠'}
+                              {!sentiment && '❓'}
+                              &nbsp;{sentiment?.charAt(0).toUpperCase() + sentiment?.slice(1) || "Unknown"}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-background rounded-lg border shadow-sm overflow-hidden">
+                    <div className="bg-background border-b px-4 py-3">
+                      <h3 className="font-medium text-sm">Resources</h3>
+                    </div>
+                    <div className="p-4">
+                      <div className="space-y-3">
+                        {/* <button
+                          onClick={exportTranscription}
+                          className="flex items-center gap-2 text-sm text-primary w-full hover:underline"
+                        >
+                          <ArrowDownCircle size={14} />
+                          <span>Export Transcript as Text</span>
+                        </button> */}
+                        <button
+                          onClick={exportIssueSummary}
+                          className="flex items-center gap-2 text-sm text-primary w-full hover:underline"
+                        >
+                          <ArrowDownCircle size={14} />
+                          <span>Export Issue Summary as Text</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
-
-              <div className="col-span-1 space-y-6">
-                <div className="bg-background rounded-lg border shadow-sm overflow-hidden">
-                  <div className="bg-background border-b px-4 py-3">
-                    <h3 className="font-medium text-sm">Call Summary</h3>
-                  </div>
-                  <div className="p-4">
-                    <div className="space-y-4">
-                      <div>
-                        <p className="text-xs text-muted-foreground mb-1">Call Type</p>
-                        <p className="text-sm font-medium">{callType?.charAt(0).toUpperCase() + callType?.slice(1)}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground mb-1">Call Result</p>
-                        <div className="flex items-center">
-                          <div className="h-2 w-2 rounded-full bg-green-500 mr-2"></div>
-                          <p className="text-sm font-medium">Resolved</p>
-                        </div>
-                      </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground mb-1">Topics Discussed</p>
-                        <div className="flex flex-wrap gap-2 mt-1">
-                          <span className="text-xs px-2 py-1 rounded-full bg-muted">Product Features</span>
-                          <span className="text-xs px-2 py-1 rounded-full bg-muted">Technical Support</span>
-                          <span className="text-xs px-2 py-1 rounded-full bg-muted">Account Setup</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div className="bg-background rounded-lg border shadow-sm overflow-hidden">
-                  <div className="bg-background border-b px-4 py-3">
-                    <h3 className="font-medium text-sm">Audio Analysis</h3>
-                  </div>
-                  <div className="p-4">
-                    <div className="space-y-3">
-                      <div>
-                        <div className="flex justify-between text-xs mb-1">
-                          <span className="text-muted-foreground">Sentiment</span>
-                          <span className="font-2xl">
-                            {sentiment === 'happy' && '😊'}
-                            {sentiment === 'frustrated' && '😐'}
-                            {sentiment === 'angry' && '😠'}
-                            {sentiment === '' && '❓'} {/* fallback if sentiment is empty */}
-                            &nbsp;{sentiment?.charAt(0).toUpperCase() + sentiment.slice(1)}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div className="bg-background rounded-lg border shadow-sm overflow-hidden">
-                  <div className="bg-background border-b px-4 py-3">
-                    <h3 className="font-medium text-sm">Resources</h3>
-                  </div>
-                  <div className="p-4">
-                    <div className="space-y-3">
-                      <button
-                        onClick={exportTranscription}
-                        className="flex items-center gap-2 text-sm text-primary w-full hover:underline"
-                      >
-                        <ArrowDownCircle size={14} />
-                        <span>Export Transcript as Text</span>
-                      </button>
-                      <button
-                        onClick={exportIssueSummary}
-                        className="flex items-center gap-2 text-sm text-primary w-full hover:underline"
-                      >
-                        <ArrowDownCircle size={14} />
-                        <span>Export Issue Summary as Text</span>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+            )}
           </TabsContent>
         </Tabs>
       </div>
