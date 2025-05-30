@@ -106,7 +106,7 @@ export function DashboardSidebar() {
             <div className="flex items-center justify-center h-8 w-8 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-md shadow-blue-500/20">
               <Headphones className="h-5 w-5" />
             </div>
-            {!collapsed && <span className="text-xl tracking-tight font-semibold bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-indigo-500">VoiceIQ</span>}
+            {!collapsed && <span className="text-xl tracking-tight font-semibold bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-indigo-500">CitrusIQ</span>}
           </Link>
           
           <Button 

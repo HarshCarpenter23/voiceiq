@@ -18,7 +18,7 @@ const VoiceIQLanding = () => {
                                 Blazing Fast and Accurate AI Transcription
                             </h1>
                             <p className="text-xl text-gray-700 dark:text-gray-300 leading-relaxed">
-                                Typing up a transcript or notes? Let VoiceIQ do the heavy lifting. It's the
+                                Typing up a transcript or notes? Let CitrusIQ do the heavy lifting. It's the
                                 fastest and most accurate speech to text app ever.
                             </p>
                         </div>
@@ -35,7 +35,7 @@ const VoiceIQLanding = () => {
                                 <div className="space-y-2">
                                     <h3 className="text-xl font-semibold">Superhuman Accuracy</h3>
                                     <p className="text-gray-700 dark:text-gray-300 text-lg leading-relaxed">
-                                        VoiceIQ is up to 99.8% accurate, surpassing human performance with
+                                        CitrusIQ is up to 99.8% accurate, surpassing human performance with
                                         the power of machine learning.
                                     </p>
                                 </div>
@@ -53,7 +53,7 @@ const VoiceIQLanding = () => {
                                 <div className="space-y-2">
                                     <h3 className="text-xl font-semibold">Blazing Speed</h3>
                                     <p className="text-gray-700 dark:text-gray-300 text-lg leading-relaxed">
-                                        No more slow manual transcription! VoiceIQ transcribes 1 hour of audio
+                                        No more slow manual transcription! CitrusIQ transcribes 1 hour of audio
                                         in just 2-3 minutes. That's 30x faster than doing it yourself and quicker
                                         than the competition!
                                     </p>

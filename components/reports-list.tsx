@@ -27,6 +27,8 @@ import {
   ArrowDown,
   PhoneIncoming,
   PhoneOutgoing,
+  Delete,
+  FileX,
 } from "lucide-react"
 import { jsPDF } from "jspdf"
 import "jspdf-autotable"
@@ -112,7 +114,7 @@ export function ReportsList() {
     request_type: "",
     toll_free_did: "",
     customer_number: "",
-    caller_sentiment: "",
+    // caller_sentiment: "",
   })
 
   // Individual column sort states
@@ -122,7 +124,7 @@ export function ReportsList() {
     request_type: null,
     toll_free_did: null,
     customer_number: null,
-    caller_sentiment: null,
+    // caller_sentiment: null,
   })
 
   const router = useRouter()
@@ -228,7 +230,7 @@ export function ReportsList() {
       request_type: "",
       toll_free_did: "",
       customer_number: "",
-      caller_sentiment: "",
+      // caller_sentiment: "",
     })
     setSearchQuery("")
     setFromDate("")
@@ -259,6 +261,11 @@ export function ReportsList() {
       console.error("Error parsing markdown with MDX:", error)
       return { title, mdxSource: null }
     }
+  }
+
+  const deleteReport = async (report: any) => {
+    console.log("DONE");
+    
   }
 
   const generatePDF = async (report: any) => {
@@ -419,9 +426,9 @@ export function ReportsList() {
         !columnFilters.customer_number ||
         report.request_type?.toLowerCase().includes(columnFilters.customer_number.toLowerCase())
 
-      const matchesSentiment =
-        !columnFilters.caller_sentiment ||
-        report.caller_sentiment?.toLowerCase().includes(columnFilters.caller_sentiment.toLowerCase())
+      // const matchesSentiment =
+      //   !columnFilters.caller_sentiment ||
+      //   report.caller_sentiment?.toLowerCase().includes(columnFilters.caller_sentiment.toLowerCase())
 
       const matchesDateRange = isDateInRange(report.call_date)
 
@@ -432,31 +439,30 @@ export function ReportsList() {
         matchesRequestType &&
         matchesTollFreeDid &&
         matchesCustomerNumber &&
-        matchesSentiment &&
         matchesDateRange
       )
     })
   }, [sortedReports, searchQuery, columnFilters, fromDate, toDate])
 
   // Function to determine sentiment color
-  const getSentimentColor = (sentiment: any) => {
-    if (!sentiment) return "gray"
+  // const getSentimentColor = (sentiment: any) => {
+  //   if (!sentiment) return "gray"
 
-    const lowerSentiment = sentiment.toLowerCase()
-    if (lowerSentiment.includes("happy") || lowerSentiment.includes("positive")) {
-      return "green"
-    } else if (lowerSentiment.includes("neutral")) {
-      return "blue"
-    } else if (
-      lowerSentiment.includes("angry") ||
-      lowerSentiment.includes("negative") ||
-      lowerSentiment.includes("sad")
-    ) {
-      return "red"
-    } else {
-      return "gray"
-    }
-  }
+  //   const lowerSentiment = sentiment.toLowerCase()
+  //   if (lowerSentiment.includes("happy") || lowerSentiment.includes("positive")) {
+  //     return "green"
+  //   } else if (lowerSentiment.includes("neutral")) {
+  //     return "blue"
+  //   } else if (
+  //     lowerSentiment.includes("angry") ||
+  //     lowerSentiment.includes("negative") ||
+  //     lowerSentiment.includes("sad")
+  //   ) {
+  //     return "red"
+  //   } else {
+  //     return "gray"
+  //   }
+  // }
 
   // Get current reports for pagination
   const indexOfLastReport = currentPage * reportsPerPage
@@ -566,7 +572,7 @@ export function ReportsList() {
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                      <TableHead className="font-semibold min-w-[200px]">
+                      <TableHead className="font-semibold min-w-[200px] p-2">
                         <ColumnHeader
                           column="created_at"
                           icon={<Phone className="h-4 w-4" />}
@@ -632,7 +638,7 @@ export function ReportsList() {
                           handleColumnSort={handleColumnSort}
                         />
                       </TableHead>
-                      <TableHead className="font-semibold min-w-[150px]">
+                      {/* <TableHead className="font-semibold min-w-[150px]">
                         <ColumnHeader
                           column="caller_sentiment"
                           icon={<AudioLines className="h-4 w-4" />}
@@ -642,7 +648,7 @@ export function ReportsList() {
                           handleColumnFilterChange={handleColumnFilterChange}
                           handleColumnSort={handleColumnSort}
                         />
-                      </TableHead>
+                      </TableHead> */}
                       <TableHead className="font-semibold text-center min-w-[120px]">
                         <div className="flex justify-center items-center gap-1">
                           <Play className="h-4 w-4" />
@@ -700,7 +706,7 @@ export function ReportsList() {
                       </TableRow>
                     ) : (
                       currentReports.map((report: any, index) => {
-                        const sentimentColor = getSentimentColor(report.caller_sentiment)
+                        // const sentimentColor = getSentimentColor(report.caller_sentiment)
 
                         return (
                           <TableRow
@@ -749,7 +755,7 @@ export function ReportsList() {
                               {report.customer_number || "-"}
                             </TableCell>
 
-                            <TableCell>
+                            {/* <TableCell>
                               <span
                                 className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium transition-all duration-200 ${
                                   sentimentColor === "green"
@@ -764,7 +770,7 @@ export function ReportsList() {
                                 {report.caller_sentiment?.charAt(0).toUpperCase() + report.caller_sentiment?.slice(1) ||
                                   "Unknown"}
                               </span>
-                            </TableCell>
+                            </TableCell> */}
                             <TableCell className="text-center">
                               <div className="flex justify-center gap-1 transition-opacity duration-200">
                                 <Button
@@ -787,6 +793,16 @@ export function ReportsList() {
                                   title="Download PDF Report"
                                 >
                                   <Download className="h-4 w-4 text-gray-500" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200"
+                                  onClick={() => deleteReport(report)}
+                                  title="Delete Report"
+                                >
+                                  <FileX color="red" className="h-4 w-4 text-gray-500" />
+                                  
                                 </Button>
                               </div>
                             </TableCell>

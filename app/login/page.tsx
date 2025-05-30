@@ -164,7 +164,7 @@ export default function DashboardPage() {
                             <Headphones className="h-5 w-5 text-white" />
                         </div>
                         <h1 className="text-4xl sm:text-5xl font-bold bg-gradient-to-r from-blue-400 via-indigo-300 to-purple-400 text-transparent bg-clip-text">
-                            VOICE IQ
+                            Citrus IQ
                         </h1>
                     </motion.div>
 
@@ -307,7 +307,7 @@ export default function DashboardPage() {
                     </div>
                 </div>
             )}
-            <VoiceIQLanding />
+            {/* <VoiceIQLanding /> */}
         </div>
     )
 }
