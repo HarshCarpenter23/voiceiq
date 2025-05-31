@@ -442,8 +442,7 @@ export function ReportsList() {
     return sortedReports.filter((report: any) => {
       // Global search filter
       const matchesGlobalSearch =
-        report.caller_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        report.request_type?.toLowerCase().includes(searchQuery.toLowerCase())
+        report.caller_name?.toLowerCase().includes(searchQuery.toLowerCase()) 
 
       // Individual column filters
       const matchesDateFilter =
@@ -454,17 +453,15 @@ export function ReportsList() {
         !columnFilters.caller_name ||
         report.caller_name?.toLowerCase().includes(columnFilters.caller_name.toLowerCase())
 
-      const matchesRequestType =
-        !columnFilters.request_type ||
-        report.request_type?.toLowerCase().includes(columnFilters.request_type.toLowerCase())
+      // const matchesRequestType =
+      //   !columnFilters.request_type ||
+      //   report.request_type?.toLowerCase().includes(columnFilters.request_type.toLowerCase())
 
       const matchesTollFreeDid =
-        !columnFilters.toll_free_did ||
-        report.request_type?.toLowerCase().includes(columnFilters.toll_free_did.toLowerCase())
+        !columnFilters.toll_free_did
 
       const matchesCustomerNumber =
-        !columnFilters.customer_number ||
-        report.request_type?.toLowerCase().includes(columnFilters.customer_number.toLowerCase())
+        !columnFilters.customer_number 
 
       // const matchesSentiment =
       //   !columnFilters.caller_sentiment ||
@@ -476,7 +473,6 @@ export function ReportsList() {
         matchesGlobalSearch &&
         matchesDateFilter &&
         matchesCallerName &&
-        matchesRequestType &&
         matchesTollFreeDid &&
         matchesCustomerNumber &&
         matchesDateRange
@@ -645,7 +641,7 @@ export function ReportsList() {
                           handleColumnSort={handleColumnSort}
                         />
                       </TableHead>
-                      <TableHead className="font-semibold min-w-[150px]">
+                      {/* <TableHead className="font-semibold min-w-[150px]">
                         <ColumnHeader
                           column="request_type"
                           icon={<Network className="h-4 w-4" />}
@@ -655,7 +651,7 @@ export function ReportsList() {
                           handleColumnFilterChange={handleColumnFilterChange}
                           handleColumnSort={handleColumnSort}
                         />
-                      </TableHead>
+                      </TableHead> */}
                       <TableHead className="font-semibold min-w-[150px]">
                         <ColumnHeader
                           column="toll_free_did"
@@ -785,9 +781,9 @@ export function ReportsList() {
                                 {report.caller_name === "null" ? "-" : report.caller_name}
                               </Button>
                             </TableCell>
-                            <TableCell className="text-gray-600 dark:text-gray-300">
+                            {/* <TableCell className="text-gray-600 dark:text-gray-300">
                               {report.request_type?.charAt(0).toUpperCase() + report.request_type?.slice(1) || "-"}
-                            </TableCell>
+                            </TableCell> */}
                             <TableCell className="text-gray-600 dark:text-gray-300">
                               {report.toll_free_did || "-"}
                             </TableCell>
