@@ -462,7 +462,7 @@ ${content}
                         </div>
                         <div>
                           <div className=" text-xs mb-1">
-                            <p className="text-muted-foreground">Sentiment</p>
+                            <p className="text-muted-foreground">Initial Sentiment</p>
                             <p className="text-sm font-medium">
                               {sentiment === 'happy' && '😊'}
                               {sentiment === 'frustrated' && '😐'}
