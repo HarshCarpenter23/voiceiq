@@ -26,7 +26,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <Toaster />
           </SidebarProvider>
         </ThemeProvider>
-        <footer className="text-center text-sm text-gray-300 p-4">
+        {/* <footer className="text-center text-sm text-gray-300 p-4">
               Made with ❤️ by{" "}
               <a
                 href="https://indominuslabs.in"
@@ -36,7 +36,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               >
                 Indominus Labs
               </a>
-            </footer>
+            </footer> */}
       </body>
     </html>
   )
