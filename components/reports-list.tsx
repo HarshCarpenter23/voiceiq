@@ -7,6 +7,17 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+import {
   Download,
   FileText,
   Search,
@@ -75,23 +86,23 @@ const ColumnHeader = ({
         )}
       </Button>
     </div>
-{showSearch && (
-  label.toLowerCase().includes("date") ? (
-    <Input
-      type="date"
-      value={columnFilters[column] || ""}
-      onChange={(e) => handleColumnFilterChange(column, e.target.value)}
-      className="h-7 text-xs bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600"
-    />
-  ) : (
-    <Input
-      placeholder={`Filter ${label.toLowerCase()}...`}
-      value={columnFilters[column] || ""}
-      onChange={(e) => handleColumnFilterChange(column, e.target.value)}
-      className="h-7 text-xs bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600"
-    />
-  )
-)}
+    {showSearch && (
+      label.toLowerCase().includes("date") ? (
+        <Input
+          type="date"
+          value={columnFilters[column] || ""}
+          onChange={(e) => handleColumnFilterChange(column, e.target.value)}
+          className="h-7 text-xs bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600"
+        />
+      ) : (
+        <Input
+          placeholder={`Filter ${label.toLowerCase()}...`}
+          value={columnFilters[column] || ""}
+          onChange={(e) => handleColumnFilterChange(column, e.target.value)}
+          className="h-7 text-xs bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600"
+        />
+      )
+    )}
   </div>
 )
 
@@ -106,6 +117,7 @@ export function ReportsList() {
   const [isFilterVisible, setIsFilterVisible] = useState(false)
   const [fromDate, setFromDate] = useState("")
   const [toDate, setToDate] = useState("")
+  const [isDeleting, setIsDeleting] = useState(false)
 
   // Individual column filters
   const [columnFilters, setColumnFilters] = useState({
@@ -262,11 +274,39 @@ export function ReportsList() {
       return { title, mdxSource: null }
     }
   }
-
   const deleteReport = async (report: any) => {
-    console.log("DONE");
+    setIsDeleting(true)
     
+    try {
+      const response = await fetch(`https://voiceiq-db.indominuslabs.in/delete_log?id=${encodeURIComponent(report.id)}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+        // No body needed
+      })
+  
+      if (!response.ok) {
+        if (response.status === 422) {
+          const errorData = await response.json()
+          console.error('Validation error:', errorData)
+          throw new Error('Invalid request parameters')
+        }
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+  
+      const result = await response.json()
+      console.log('Delete successful:', result)
+      
+      await fetchReports()
+      
+    } catch (error) {
+      console.error('Error deleting report:', error)
+    } finally {
+      setIsDeleting(false)
+    }
   }
+  
 
   const generatePDF = async (report: any) => {
     // Initialize PDF document
@@ -794,16 +834,55 @@ export function ReportsList() {
                                 >
                                   <Download className="h-4 w-4 text-gray-500" />
                                 </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200"
-                                  onClick={() => deleteReport(report)}
-                                  title="Delete Report"
-                                >
-                                  <FileX color="red" className="h-4 w-4 text-gray-500" />
-                                  
-                                </Button>
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-8 w-8 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200"
+                                      title="Delete Report"
+                                      disabled={isDeleting}
+                                    >
+                                      <FileX color="red" className="h-4 w-4 text-gray-500" />
+                                    </Button>
+                                  </AlertDialogTrigger>
+
+                                  <AlertDialogContent className="sm:max-w-[425px]">
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle className="flex items-center gap-2">
+                                        <FileX className="h-5 w-5 text-red-500" />
+                                        Delete Report
+                                      </AlertDialogTitle>
+                                      <AlertDialogDescription className="text-left">
+                                        Are you sure you want to delete the report for "{report.caller_name || 'Unknown Caller'}"?
+                                        This action cannot be undone and will permanently remove the report.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+
+                                    <AlertDialogFooter className="flex gap-2">
+                                      <AlertDialogCancel
+                                        className="bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700"
+                                        disabled={isDeleting}
+                                      >
+                                        Cancel
+                                      </AlertDialogCancel>
+                                      <AlertDialogAction
+                                        onClick={() => deleteReport(report)}
+                                        disabled={isDeleting}
+                                        className="bg-red-600 hover:bg-red-700 text-white"
+                                      >
+                                        {isDeleting ? (
+                                          <div className="flex items-center gap-2">
+                                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                            Deleting...
+                                          </div>
+                                        ) : (
+                                          'Delete Report'
+                                        )}
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
                               </div>
                             </TableCell>
                           </TableRow>
