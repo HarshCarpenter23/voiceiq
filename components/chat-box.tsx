@@ -3,8 +3,9 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { Button } from "./ui/button";
-import { SendHorizontal, Loader2, Mic, MicOff, Square } from "lucide-react";
+import { SendHorizontal, Loader2, Mic, Square } from "lucide-react";
 import { cn } from "@/lib/utils";
+import ReactMarkdown from "react-markdown"; // ✅ Markdown support
 
 const ChatBox = ({ messages, setMessages }) => {
   const params = useParams();
@@ -17,19 +18,16 @@ const ChatBox = ({ messages, setMessages }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
-  const [recordingInterval, setRecordingInterval] = useState<NodeJS.Timeout | null>(null);
+  const [recordingInterval, setRecordingInterval] =
+    useState<NodeJS.Timeout | null>(null);
 
-  // Auto-scroll to bottom when messages change
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
 
-  // Cleanup recording interval on unmount
   useEffect(() => {
     return () => {
-      if (recordingInterval) {
-        clearInterval(recordingInterval);
-      }
+      if (recordingInterval) clearInterval(recordingInterval);
     };
   }, [recordingInterval]);
 
@@ -39,13 +37,16 @@ const ChatBox = ({ messages, setMessages }) => {
 
   const formatTimestamp = () => {
     const now = new Date();
-    return `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+    return `${now.getHours().toString().padStart(2, "0")}:${now
+      .getMinutes()
+      .toString()
+      .padStart(2, "0")}`;
   };
 
   const formatRecordingTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
   const startRecording = async () => {
@@ -56,25 +57,22 @@ const ChatBox = ({ messages, setMessages }) => {
       audioChunksRef.current = [];
 
       mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          audioChunksRef.current.push(event.data); 
-        }
+        if (event.data.size > 0) audioChunksRef.current.push(event.data);
       };
 
       mediaRecorder.onstop = () => {
-        stream.getTracks().forEach(track => track.stop());
+        stream.getTracks().forEach((track) => track.stop());
       };
 
       mediaRecorder.start();
       setIsRecording(true);
       setRecordingTime(0);
 
-      // Start recording timer
-      const interval = setInterval(() => {
-        setRecordingTime(prev => prev + 1);
-      }, 1000);
+      const interval = setInterval(
+        () => setRecordingTime((prev) => prev + 1),
+        1000
+      );
       setRecordingInterval(interval);
-
     } catch (error) {
       console.error("Error accessing microphone:", error);
       alert("Unable to access microphone. Please check permissions.");
@@ -85,169 +83,149 @@ const ChatBox = ({ messages, setMessages }) => {
     if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop();
       setIsRecording(false);
-      
+
       if (recordingInterval) {
         clearInterval(recordingInterval);
         setRecordingInterval(null);
       }
 
-      // Process the recorded audio
       setTimeout(() => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
+        const audioBlob = new Blob(audioChunksRef.current, {
+          type: "audio/wav",
+        });
         sendAudioMessage(audioBlob);
       }, 100);
     }
   };
 
   const sendAudioMessage = async (audioBlob: Blob) => {
-    // Initially add a placeholder message with loading animation
-    const placeholderMessage: Message = { 
-      type: "user", 
+    const placeholderMessage = {
+      type: "user",
       text: "",
       timestamp: formatTimestamp(),
       isAudio: true,
-      isProcessing: true
+      isProcessing: true,
     };
-    
+
     setMessages((prev) => [...prev, placeholderMessage]);
     setIsLoading(true);
 
     try {
       const formData = new FormData();
-      formData.append('file', audioBlob, 'recording.wav');
-      formData.append('uuid', uuid);
+      formData.append("file", audioBlob, "recording.wav");
+      formData.append("uuid", uuid);
 
-      // Audio endpoint for voice messages
-      const res = await fetch("https://voiceiq-db.indominuslabs.in/voice_chat", {
-        method: "POST",
-        body: formData,
-      });
+      const res = await fetch(
+        "https://voiceiq-db.indominuslabs.in/voice_chat",
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
 
       const data = await res.json();
 
       if (data.status === "success") {
-        // Update the placeholder message with the actual user prompt
         setMessages((prev) => {
-          const updatedMessages = [...prev];
-          const lastMessageIndex = updatedMessages.length - 1;
-          
-          // Update the user message with the transcribed text
-          updatedMessages[lastMessageIndex] = {
-            ...updatedMessages[lastMessageIndex],
+          const updated = [...prev];
+          updated[updated.length - 1] = {
+            ...updated[updated.length - 1],
             text: data.user_prompt || "Voice message processed",
-            isProcessing: false
+            isProcessing: false,
           };
-          
-          return updatedMessages;
+          return updated;
         });
 
-        // Add bot response
-        const botMessage: Message = {
-          type: "bot",
-          text: data.content,
-          timestamp: formatTimestamp()
-        };
-        
-        setMessages((prev) => [...prev, botMessage]);
+        setMessages((prev) => [
+          ...prev,
+          {
+            type: "bot",
+            text: data.content,
+            timestamp: formatTimestamp(),
+          },
+        ]);
       } else {
-        // Update placeholder with error message
-        setMessages((prev) => {
-          const updatedMessages = [...prev];
-          const lastMessageIndex = updatedMessages.length - 1;
-          
-          updatedMessages[lastMessageIndex] = {
-            ...updatedMessages[lastMessageIndex],
-            text: "Failed to process voice message",
-            isProcessing: false
-          };
-          
-          return updatedMessages;
-        });
-
-        const errorMessage: Message = {
-          type: "bot",
-          text: "Sorry, I couldn't process that audio message.",
-          timestamp: formatTimestamp()
-        };
-        
-        setMessages((prev) => [...prev, errorMessage]);
+        showErrorMsg("Failed to process voice message");
       }
-    } catch (err) {
-      // Update placeholder with error message
-      setMessages((prev) => {
-        const updatedMessages = [...prev];
-        const lastMessageIndex = updatedMessages.length - 1;
-        
-        updatedMessages[lastMessageIndex] = {
-          ...updatedMessages[lastMessageIndex],
-          text: "Network error occurred",
-          isProcessing: false
-        };
-        
-        return updatedMessages;
-      });
-
-      const errorMessage: Message = {
-        type: "bot", 
-        text: "Network error. Please try again later.",
-        timestamp: formatTimestamp()
-      };
-      
-      setMessages((prev) => [...prev, errorMessage]);
+    } catch {
+      showErrorMsg("Network error occurred");
     } finally {
       setIsLoading(false);
       setRecordingTime(0);
     }
   };
 
+  const showErrorMsg = (text) => {
+    setMessages((prev) => {
+      const updated = [...prev];
+      updated[updated.length - 1] = {
+        ...updated[updated.length - 1],
+        text,
+        isProcessing: false,
+      };
+      return updated;
+    });
+
+    setMessages((prev) => [
+      ...prev,
+      {
+        type: "bot",
+        text: "Sorry, I couldn't process that audio message.",
+        timestamp: formatTimestamp(),
+      },
+    ]);
+  };
+
   const handleSend = async () => {
     if (input.trim() === "") return;
-    
-    const userMessage: Message = { 
-      type: "user", 
-      text: input,
-      timestamp: formatTimestamp()
-    };
-    
-    setMessages((prev) => [...prev, userMessage]);
+
+    setMessages((prev) => [
+      ...prev,
+      {
+        type: "user",
+        text: input,
+        timestamp: formatTimestamp(),
+      },
+    ]);
+
+    const payload = { user_prompt: input, uuid };
     setInput("");
     setIsLoading(true);
 
     try {
       const res = await fetch("https://voiceiq-db.indominuslabs.in/chat", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ user_prompt: input, uuid }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
       });
 
       const data = await res.json();
 
-      const botMessage: Message = {
-        type: "bot",
-        text:
-          data.status === "success"
-            ? data.content
-            : "Sorry, I couldn't process that request.",
-        timestamp: formatTimestamp()
-      };
-      
-      setMessages((prev) => [...prev, botMessage]);
-    } catch (err) {
-      const errorMessage: Message = {
-        type: "bot", 
-        text: "Network error. Please try again later.",
-        timestamp: formatTimestamp()
-      };
-      
-      setMessages((prev) => [...prev, errorMessage]);
+      setMessages((prev) => [
+        ...prev,
+        {
+          type: "bot",
+          text:
+            data.status === "success"
+              ? data.content
+              : "Sorry, I couldn't process that request.",
+          timestamp: formatTimestamp(),
+        },
+      ]);
+    } catch {
+      setMessages((prev) => [
+        ...prev,
+        {
+          type: "bot",
+          text: "Network error. Please try again later.",
+          timestamp: formatTimestamp(),
+        },
+      ]);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Empty state message
   const renderEmptyState = () => (
     <div className="flex flex-col items-center justify-center h-full text-center p-6">
       <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
@@ -280,11 +258,11 @@ const ChatBox = ({ messages, setMessages }) => {
                     AI
                   </div>
                 )}
-                
+
                 <div className="flex flex-col max-w-[75%]">
                   <div
                     className={cn(
-                      "p-3 rounded-2xl text-sm",
+                      "p-3 rounded-2xl text-sm whitespace-pre-wrap",
                       msg.type === "user"
                         ? "bg-primary text-primary-foreground ml-auto rounded-tr-none"
                         : "bg-muted text-foreground mr-auto rounded-tl-none"
@@ -293,23 +271,30 @@ const ChatBox = ({ messages, setMessages }) => {
                     {msg.isProcessing ? (
                       <div className="flex items-center gap-2">
                         <div className="flex items-center gap-1">
-                          <div className="h-3 w-1 bg-current rounded-full animate-pulse" style={{ animationDelay: '0ms', animationDuration: '1.2s' }}></div>
-                          <div className="h-4 w-1 bg-current rounded-full animate-pulse" style={{ animationDelay: '200ms', animationDuration: '1.2s' }}></div>
-                          <div className="h-3 w-1 bg-current rounded-full animate-pulse" style={{ animationDelay: '400ms', animationDuration: '1.2s' }}></div>
-                          <div className="h-2 w-1 bg-current rounded-full animate-pulse" style={{ animationDelay: '600ms', animationDuration: '1.2s' }}></div>
-                          <div className="h-3 w-1 bg-current rounded-full animate-pulse" style={{ animationDelay: '800ms', animationDuration: '1.2s' }}></div>
+                          {[...Array(5)].map((_, i) => (
+                            <div
+                              key={i}
+                              className="h-3 w-1 bg-current rounded-full animate-pulse"
+                              style={{
+                                animationDelay: `${i * 200}ms`,
+                                animationDuration: "1.2s",
+                              }}
+                            />
+                          ))}
                         </div>
-                        <span className="text-xs opacity-75">Processing audio...</span>
+                        <span className="text-xs opacity-75">
+                          Processing audio...
+                        </span>
                       </div>
                     ) : (
-                      msg.text
+                      <ReactMarkdown>{msg.text}</ReactMarkdown>
                     )}
                   </div>
                   <span className="text-xs text-muted-foreground mt-1 px-1">
                     {msg.timestamp}
                   </span>
                 </div>
-                
+
                 {msg.type === "user" && (
                   <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center text-xs font-medium text-primary">
                     You
@@ -331,7 +316,6 @@ const ChatBox = ({ messages, setMessages }) => {
         </div>
       )}
 
-      {/* Recording indicator */}
       {isRecording && (
         <div className="px-4 py-2 bg-red-50 border-t border-red-200">
           <div className="flex items-center justify-center gap-2 text-sm text-red-600">
@@ -351,16 +335,15 @@ const ChatBox = ({ messages, setMessages }) => {
           onKeyDown={(e) => e.key === "Enter" && !isRecording && handleSend()}
           disabled={isLoading || isRecording}
         />
-        
-        {/* Audio recording button */}
+
         <Button
           onClick={isRecording ? stopRecording : startRecording}
           disabled={isLoading}
           size="sm"
           className={cn(
             "rounded-full h-10 w-10 p-0 flex items-center justify-center flex-shrink-0",
-            isRecording 
-              ? "bg-red-500 hover:bg-red-600 text-white animate-pulse" 
+            isRecording
+              ? "bg-red-500 hover:bg-red-600 text-white animate-pulse"
               : "bg-muted hover:bg-muted/80 text-muted-foreground"
           )}
         >
@@ -371,15 +354,14 @@ const ChatBox = ({ messages, setMessages }) => {
           )}
         </Button>
 
-        {/* Text send button */}
         <Button
           onClick={handleSend}
           disabled={input.trim() === "" || isLoading || isRecording}
           size="sm"
           className={cn(
             "rounded-full h-10 w-10 p-0 flex items-center justify-center flex-shrink-0",
-            input.trim() === "" || isRecording 
-              ? "bg-muted text-muted-foreground" 
+            input.trim() === "" || isRecording
+              ? "bg-muted text-muted-foreground"
               : "bg-primary hover:bg-primary/90"
           )}
         >
