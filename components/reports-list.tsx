@@ -126,6 +126,7 @@ export function ReportsList() {
     request_type: "",
     toll_free_did: "",
     customer_number: "",
+    call_type: "",
     // caller_sentiment: "",
   })
 
@@ -136,6 +137,7 @@ export function ReportsList() {
     request_type: null,
     toll_free_did: null,
     customer_number: null,
+     call_type: "",
     // caller_sentiment: null,
   })
 
@@ -242,6 +244,7 @@ export function ReportsList() {
       request_type: "",
       toll_free_did: "",
       customer_number: "",
+      call_type: "",
       // caller_sentiment: "",
     })
     setSearchQuery("")
@@ -452,16 +455,28 @@ export function ReportsList() {
       const matchesCallerName =
         !columnFilters.caller_name ||
         report.caller_name?.toLowerCase().includes(columnFilters.caller_name.toLowerCase())
+      // Filter for In/Out Bound Calls
+      const matchesCallType =
+        !columnFilters.call_type ||
+        (report.call_type && report.call_type.toLowerCase().includes(columnFilters.call_type.toLowerCase()));
 
       // const matchesRequestType =
       //   !columnFilters.request_type ||
       //   report.request_type?.toLowerCase().includes(columnFilters.request_type.toLowerCase())
 
+      // const matchesTollFreeDid =
+      //   !columnFilters.toll_free_did
+
+      // const matchesCustomerNumber =
+      //   !columnFilters.customer_number 
       const matchesTollFreeDid =
-        !columnFilters.toll_free_did
+        !columnFilters.toll_free_did ||
+        (report.toll_free_did && report.toll_free_did.toLowerCase().includes(columnFilters.toll_free_did.toLowerCase()));
 
       const matchesCustomerNumber =
-        !columnFilters.customer_number 
+        !columnFilters.customer_number ||
+        (report.customer_number && report.customer_number.toLowerCase().includes(columnFilters.customer_number.toLowerCase()));
+
 
       // const matchesSentiment =
       //   !columnFilters.caller_sentiment ||
@@ -475,6 +490,7 @@ export function ReportsList() {
         matchesCallerName &&
         matchesTollFreeDid &&
         matchesCustomerNumber &&
+        matchesCallType &&
         matchesDateRange
       )
     })
