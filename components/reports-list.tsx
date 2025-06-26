@@ -113,7 +113,7 @@ export function ReportsList() {
   const [error, setError] = useState("")
   const [currentPage, setCurrentPage] = useState(1)
   const [reportsPerPage] = useState(20)
-  const [sortConfig, setSortConfig] = useState({ key: "created_at", direction: "desc" })
+  const [sortConfig, setSortConfig] = useState({ key: "call_date", direction: "desc" })
   const [isFilterVisible, setIsFilterVisible] = useState(false)
   const [fromDate, setFromDate] = useState("")
   const [toDate, setToDate] = useState("")
@@ -121,7 +121,7 @@ export function ReportsList() {
 
   // Individual column filters
   const [columnFilters, setColumnFilters] = useState({
-    created_at: "",
+    call_date: "",
     caller_name: "",
     request_type: "",
     toll_free_did: "",
@@ -132,7 +132,7 @@ export function ReportsList() {
 
   // Individual column sort states
   const [columnSorts, setColumnSorts] = useState({
-    created_at: "desc",
+    call_date: "desc",
     caller_name: null,
     request_type: null,
     toll_free_did: null,
@@ -239,7 +239,7 @@ export function ReportsList() {
   // Clear all filters
   const clearAllFilters = () => {
     setColumnFilters({
-      created_at: "",
+      call_date: "",
       caller_name: "",
       request_type: "",
       toll_free_did: "",
@@ -449,8 +449,8 @@ export function ReportsList() {
 
       // Individual column filters
       const matchesDateFilter =
-        !columnFilters.created_at ||
-        (report.call_date && report.call_date.toLowerCase().includes(columnFilters.created_at.toLowerCase()))
+        !columnFilters.call_date ||
+        (report.call_date && report.call_date.toLowerCase().includes(columnFilters.call_date.toLowerCase()))
 
       const matchesCallerName =
         !columnFilters.caller_name ||
@@ -626,7 +626,7 @@ export function ReportsList() {
                     <TableRow className="bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-50 dark:hover:bg-gray-800/50">
                       <TableHead className="font-semibold min-w-[200px] p-2">
                         <ColumnHeader
-                          column="created_at"
+                          column="call_date"
                           icon={<Phone className="h-4 w-4" />}
                           label="Date"
                           columnFilters={columnFilters}
