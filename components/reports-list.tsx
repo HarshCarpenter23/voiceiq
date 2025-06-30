@@ -444,22 +444,26 @@ export function ReportsList() {
   const filteredReports = useMemo(() => {
     return sortedReports.filter((report: any) => {
       // Global search filter
+      // const matchesGlobalSearch =
+      //   report.caller_name?.toLowerCase().includes(searchQuery.toLowerCase())
       const matchesGlobalSearch =
-        report.caller_name?.toLowerCase().includes(searchQuery.toLowerCase()) 
-
+        !searchQuery ||
+        (report.caller_name && report.caller_name.toLowerCase().includes(searchQuery.toLowerCase()))
       // Individual column filters
       const matchesDateFilter =
         !columnFilters.call_date ||
-        (report.call_date && report.call_date.toLowerCase().includes(columnFilters.call_date.toLowerCase()))
+        (report.call_date && report.call_date.toLowerCase().includes(columnFilters.call_date.toLowerCase()));
+
 
       const matchesCallerName =
         !columnFilters.caller_name ||
-        report.caller_name?.toLowerCase().includes(columnFilters.caller_name.toLowerCase())
+        (report.caller_name && report.caller_name.toLowerCase().includes(columnFilters.caller_name.toLowerCase()));
+
       // Filter for In/Out Bound Calls
+
       const matchesCallType =
         !columnFilters.call_type ||
         (report.call_type && report.call_type.toLowerCase().includes(columnFilters.call_type.toLowerCase()));
-
       // const matchesRequestType =
       //   !columnFilters.request_type ||
       //   report.request_type?.toLowerCase().includes(columnFilters.request_type.toLowerCase())
@@ -469,6 +473,7 @@ export function ReportsList() {
 
       // const matchesCustomerNumber =
       //   !columnFilters.customer_number 
+
       const matchesTollFreeDid =
         !columnFilters.toll_free_did ||
         (report.toll_free_did && report.toll_free_did.toLowerCase().includes(columnFilters.toll_free_did.toLowerCase()));
@@ -476,7 +481,6 @@ export function ReportsList() {
       const matchesCustomerNumber =
         !columnFilters.customer_number ||
         (report.customer_number && report.customer_number.toLowerCase().includes(columnFilters.customer_number.toLowerCase()));
-
 
       // const matchesSentiment =
       //   !columnFilters.caller_sentiment ||
@@ -657,17 +661,6 @@ export function ReportsList() {
                           handleColumnSort={handleColumnSort}
                         />
                       </TableHead>
-                      {/* <TableHead className="font-semibold min-w-[150px]">
-                        <ColumnHeader
-                          column="request_type"
-                          icon={<Network className="h-4 w-4" />}
-                          label="Request Type"
-                          columnFilters={columnFilters}
-                          columnSorts={columnSorts}
-                          handleColumnFilterChange={handleColumnFilterChange}
-                          handleColumnSort={handleColumnSort}
-                        />
-                      </TableHead> */}
                       <TableHead className="font-semibold min-w-[150px]">
                         <ColumnHeader
                           column="toll_free_did"
@@ -690,17 +683,9 @@ export function ReportsList() {
                           handleColumnSort={handleColumnSort}
                         />
                       </TableHead>
-                      {/* <TableHead className="font-semibold min-w-[150px]">
-                        <ColumnHeader
-                          column="caller_sentiment"
-                          icon={<AudioLines className="h-4 w-4" />}
-                          label="Sentiment"
-                          columnFilters={columnFilters}
-                          columnSorts={columnSorts}
-                          handleColumnFilterChange={handleColumnFilterChange}
-                          handleColumnSort={handleColumnSort}
-                        />
-                      </TableHead> */}
+                      <TableHead className="font-semibold min-w-[120px]">
+                        <span>Status</span>
+                      </TableHead>
                       <TableHead className="font-semibold text-center min-w-[120px]">
                         <div className="flex justify-center items-center gap-1">
                           <Play className="h-4 w-4" />
@@ -709,7 +694,7 @@ export function ReportsList() {
                       </TableHead>
                     </TableRow>
                   </TableHeader>
-                  <TableBody className="text-[0.9rem]">
+                  <TableBody>
                     {loading ? (
                       <TableRow>
                         <TableCell colSpan={8} className="h-32">
@@ -785,7 +770,7 @@ export function ReportsList() {
                                 )}
                               </div>
                             </TableCell>
-                            <TableCell>
+                            {/* <TableCell>
                               <Button
                                 variant="ghost"
                                 className="px-0 font-medium text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors duration-200 text-[1.1rem]"
@@ -796,6 +781,22 @@ export function ReportsList() {
                               >
                                 {report.caller_name === "null" ? "-" : report.caller_name}
                               </Button>
+                            </TableCell> */}
+                            <TableCell>
+                              {report.caller_name && report.caller_name !== "null" ? (
+                                <Button
+                                  variant="ghost"
+                                  className="px-0 font-medium text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors duration-200 text-[1.1rem]"
+                                  onClick={() => {
+                                    setSelectedReport(report)
+                                    router.push(`/reports/${report.id}`)
+                                  }}
+                                >
+                                  {report.caller_name}
+                                </Button>
+                              ) : (
+                                <span>-</span>
+                              )}
                             </TableCell>
                             {/* <TableCell className="text-gray-600 dark:text-gray-300">
                               {report.request_type?.charAt(0).toUpperCase() + report.request_type?.slice(1) || "-"}
