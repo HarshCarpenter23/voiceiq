@@ -807,6 +807,15 @@ export function ReportsList() {
                             <TableCell className="text-gray-600 dark:text-gray-300">
                               {report.customer_number || "-"}
                             </TableCell>
+                            <TableCell>
+                              {report.status === "processing" ? (
+                                <span className="px-2 py-1 rounded bg-yellow-100 text-yellow-800 text-xs">Processing</span>
+                              ) : (
+                                <span className="px-2 py-1 rounded bg-green-100 text-green-800 text-xs capitalize">
+                                  {report.status}
+                                </span>
+                              )}
+                            </TableCell>
 
                             {/* <TableCell>
                               <span
