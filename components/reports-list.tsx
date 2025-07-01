@@ -844,6 +844,7 @@ export function ReportsList() {
                                     router.push(`/reports/${report.id}`)
                                   }}
                                   title="View Report"
+                                  disabled={report.status === "processing"}
                                 >
                                   <Eye className="h-4 w-4 text-gray-500" />
                                 </Button>
@@ -853,6 +854,7 @@ export function ReportsList() {
                                   className="h-8 w-8 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200"
                                   onClick={() => generatePDF(report)}
                                   title="Download PDF Report"
+                                  disabled={report.status === "processing"}
                                 >
                                   <Download className="h-4 w-4 text-gray-500" />
                                 </Button>
@@ -863,7 +865,7 @@ export function ReportsList() {
                                       size="icon"
                                       className="h-8 w-8 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200"
                                       title="Delete Report"
-                                      disabled={isDeleting}
+                                      // disabled={isDeleting || report.status === "processing"}
                                     >
                                       <FileX color="red" className="h-4 w-4 text-gray-500" />
                                     </Button>
