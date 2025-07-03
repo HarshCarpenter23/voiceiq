@@ -108,7 +108,7 @@ const ColumnHeader = ({
 
 export function ReportsList() {
   const [searchQuery, setSearchQuery] = useState("")
-  const [reports, setReports] = useState([])
+  //const [reports, setReports] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
   const [currentPage, setCurrentPage] = useState(1)
@@ -118,6 +118,11 @@ export function ReportsList() {
   const [fromDate, setFromDate] = useState("")
   const [toDate, setToDate] = useState("")
   const [isDeleting, setIsDeleting] = useState(false)
+  // const [reports, setReports] = useState([]);
+  const [limit, setLimit] = useState(20);
+  const [offset, setOffset] = useState(0);
+  const [total, setTotal] = useState(0);
+  const [reports, setReports] = useState<any[]>([]);
 
   // Individual column filters
   const [columnFilters, setColumnFilters] = useState({
@@ -137,7 +142,7 @@ export function ReportsList() {
     request_type: null,
     toll_free_did: null,
     customer_number: null,
-     call_type: "",
+    call_type: "",
     // caller_sentiment: null,
   })
 
@@ -149,29 +154,56 @@ export function ReportsList() {
     <div className={`absolute blur-3xl opacity-20 rounded-full mix-blend-multiply ${className}`}></div>
   )
 
-  const fetchReports = async () => {
-    setLoading(true)
+  // const fetchReports = async () => {
+  //   setLoading(true)
+  //   try {
+  //     const res = await fetch("http://127.0.0.1:8000/logs/all", {
+  //       method: "GET",
+  //       headers: {
+  //         "Content-Type": "application/json",
+  //       },
+  //     })
+  //     const data = await res.json()
+  //     console.log("✅ Data received:", data)
+  //     setReports(data.data || [])
+  //   } catch (err) {
+  //     console.error("❌ Failed to fetch reports:", err)
+  //     setError("Failed to load reports.")
+  //   } finally {
+  //     setLoading(false)
+  //   }
+  // }
+  // added pagination so that we can load reports in chunks
+  const fetchReports = async (page = 1) => {
+    setLoading(true);
     try {
-      const res = await fetch("https://voiceiq-db.indominuslabs.in/logs/all", {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      })
-      const data = await res.json()
-      console.log("✅ Data received:", data)
-      setReports(data.data || [])
+      const offset = (page - 1) * reportsPerPage;
+      const res = await fetch(`http://127.0.0.1:8000/logs/all?limit=${reportsPerPage}&offset=${offset}`);
+      const data = await res.json();
+      setReports(data.data || []);
     } catch (err) {
-      console.error("❌ Failed to fetch reports:", err)
-      setError("Failed to load reports.")
+      setError("Failed to load reports.");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
+  // useEffect(() => {
+  //   fetchReports()
+  // }, [])
   useEffect(() => {
-    fetchReports()
-  }, [])
+    setLoading(true);
+  fetch(`http://127.0.0.1:8000/logs/all?limit=${limit}&offset=${offset}`)
+    .then(res => res.json())
+    .then(data => {
+      setReports(data.data);
+      setLimit(data.limit);
+      setOffset(data.offset);
+      setTotal(data.total);
+      setLoading(false);
+    })
+    .catch(() => setLoading(false));
+}, [limit, offset]);
 
   // Update the isDateInRange function:
   const isDateInRange = (callDate: string) => {
@@ -279,16 +311,16 @@ export function ReportsList() {
   }
   const deleteReport = async (report: any) => {
     setIsDeleting(true)
-    
+
     try {
-      const response = await fetch(`https://voiceiq-db.indominuslabs.in/delete_log?id=${encodeURIComponent(report.id)}`, {
+      const response = await fetch(`http://127.0.0.1:8000/delete_log?id=${encodeURIComponent(report.id)}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         }
         // No body needed
       })
-  
+
       if (!response.ok) {
         if (response.status === 422) {
           const errorData = await response.json()
@@ -297,19 +329,19 @@ export function ReportsList() {
         }
         throw new Error(`HTTP error! status: ${response.status}`)
       }
-  
+
       const result = await response.json()
       console.log('Delete successful:', result)
-      
+
       await fetchReports()
-      
+
     } catch (error) {
       console.error('Error deleting report:', error)
     } finally {
       setIsDeleting(false)
     }
   }
-  
+
 
   const generatePDF = async (report: any) => {
     // Initialize PDF document
@@ -521,9 +553,14 @@ export function ReportsList() {
   // }
 
   // Get current reports for pagination
-  const indexOfLastReport = currentPage * reportsPerPage
-  const indexOfFirstReport = indexOfLastReport - reportsPerPage
-  const currentReports = filteredReports.slice(indexOfFirstReport, indexOfLastReport)
+  // const indexOfLastReport = currentPage * reportsPerPage
+  // const indexOfFirstReport = indexOfLastReport - reportsPerPage
+  // const currentReports = filteredReports.slice(indexOfFirstReport, indexOfLastReport)
+
+  const currentReports = filteredReports; // filteredReports is just the current page now
+  // Calculate the correct indices for the current page
+  const startIdx = (currentPage - 1) * reportsPerPage + 1;
+  const endIdx = startIdx + currentReports.length - 1;
   const totalPages = Math.ceil(filteredReports.length / reportsPerPage)
 
   // Change page
@@ -865,7 +902,7 @@ export function ReportsList() {
                                       size="icon"
                                       className="h-8 w-8 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200"
                                       title="Delete Report"
-                                      // disabled={isDeleting || report.status === "processing"}
+                                    // disabled={isDeleting || report.status === "processing"}
                                     >
                                       <FileX color="red" className="h-4 w-4 text-gray-500" />
                                     </Button>
@@ -919,40 +956,29 @@ export function ReportsList() {
             </div>
 
             {/* Pagination */}
-            {!loading && !error && filteredReports.length > 0 && (
+            {!loading && !error && reports.length > 0 && (
               <div className="px-4 py-4 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between">
                 <div className="text-sm text-gray-500">
-                  Showing <span className="font-medium">{indexOfFirstReport + 1}</span> to{" "}
-                  <span className="font-medium">{Math.min(indexOfLastReport, filteredReports.length)}</span> of{" "}
-                  <span className="font-medium">{filteredReports.length}</span> reports
+                  Showing <span className="font-medium">{offset + 1}</span> to{" "}
+                  <span className="font-medium">{Math.min(offset + limit, total)}</span> of{" "}
+                  <span className="font-medium">{total}</span> reports
                 </div>
                 <div className="flex items-center gap-1">
                   <Button
                     variant="outline"
                     size="icon"
                     className="h-8 w-8 rounded-full"
-                    onClick={() => paginate(Math.max(1, currentPage - 1))}
-                    disabled={currentPage === 1}
+                    onClick={() => setOffset(offset - limit)}
+                    disabled={offset === 0}
                   >
                     <ChevronLeft className="h-4 w-4" />
                   </Button>
-                  {[...Array(totalPages)].map((_, i) => (
-                    <Button
-                      key={`page-${i}`}
-                      variant={currentPage === i + 1 ? "default" : "outline"}
-                      size="icon"
-                      className={`h-8 w-8 rounded-full ${currentPage === i + 1 ? "bg-gradient-to-r from-blue-500 to-purple-500" : ""}`}
-                      onClick={() => paginate(i + 1)}
-                    >
-                      {i + 1}
-                    </Button>
-                  ))}
                   <Button
                     variant="outline"
                     size="icon"
                     className="h-8 w-8 rounded-full"
-                    onClick={() => paginate(Math.min(totalPages, currentPage + 1))}
-                    disabled={currentPage === totalPages}
+                    onClick={() => setOffset(offset + limit)}
+                    disabled={offset + limit >= total}
                   >
                     <ChevronRight className="h-4 w-4" />
                   </Button>
