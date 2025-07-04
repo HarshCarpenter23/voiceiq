@@ -178,7 +178,7 @@ export function ReportsList() {
     setLoading(true);
     try {
       const offset = (page - 1) * reportsPerPage;
-      const res = await fetch(`http://127.0.0.1:8000/logs/all?limit=${reportsPerPage}&offset=${offset}`);
+      const res = await fetch(`https://voiceiqindominuslabs.vercel.app/logs/all?limit=${reportsPerPage}&offset=${offset}`);
       const data = await res.json();
       setReports(data.data || []);
     } catch (err) {
@@ -193,7 +193,7 @@ export function ReportsList() {
   // }, [])
   useEffect(() => {
     setLoading(true);
-  fetch(`http://127.0.0.1:8000/logs/all?limit=${limit}&offset=${offset}`)
+  fetch(`https://voiceiqindominuslabs.vercel.app/logs/all?limit=${limit}&offset=${offset}`)
     .then(res => res.json())
     .then(data => {
       setReports(data.data);
