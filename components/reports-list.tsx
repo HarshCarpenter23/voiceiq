@@ -1,11 +1,24 @@
-"use client"
+"use client";
 
-import { useState, useEffect, useMemo } from "react"
-import { motion, AnimatePresence } from "framer-motion"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { useState, useEffect, useMemo } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,7 +29,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
+} from "@/components/ui/alert-dialog";
 import {
   Download,
   FileText,
@@ -40,19 +53,22 @@ import {
   PhoneOutgoing,
   Delete,
   FileX,
-} from "lucide-react"
-import { jsPDF } from "jspdf"
-import "jspdf-autotable"
-import { serialize } from "next-mdx-remote/serialize"
-import { useReportStore } from "@/store/reportStore"
-import { useRouter } from "next/navigation"
-import { DateTime } from "luxon"
-import { DateRangePicker } from "./date-range-picker"
+} from "lucide-react";
+import { jsPDF } from "jspdf";
+import "jspdf-autotable";
+import { serialize } from "next-mdx-remote/serialize";
+import { useReportStore } from "@/store/reportStore";
+import { useRouter } from "next/navigation";
+import { DateTime } from "luxon";
+import { DateRangePicker } from "./date-range-picker";
+import { BASE_URL } from "@/lib/constants";
 
 function convertUTCToLocalLuxon(utcTimeString: string) {
-  const userTimeZone = DateTime.local().zoneName
+  const userTimeZone = DateTime.local().zoneName;
 
-  return DateTime.fromISO(utcTimeString, { zone: "utc" }).setZone(userTimeZone).toFormat("yyyy-LL-dd HH:mm:ss")
+  return DateTime.fromISO(utcTimeString, { zone: "utc" })
+    .setZone(userTimeZone)
+    .toFormat("yyyy-LL-dd HH:mm:ss");
 }
 
 const ColumnHeader = ({
@@ -86,8 +102,8 @@ const ColumnHeader = ({
         )}
       </Button>
     </div>
-    {showSearch && (
-      label.toLowerCase().includes("date") ? (
+    {showSearch &&
+      (label.toLowerCase().includes("date") ? (
         <Input
           type="date"
           value={columnFilters[column] || ""}
@@ -101,23 +117,25 @@ const ColumnHeader = ({
           onChange={(e) => handleColumnFilterChange(column, e.target.value)}
           className="h-7 text-xs bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600"
         />
-      )
-    )}
+      ))}
   </div>
-)
+);
 
 export function ReportsList() {
-  const [searchQuery, setSearchQuery] = useState("")
+  const [searchQuery, setSearchQuery] = useState("");
   //const [reports, setReports] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState("")
-  const [currentPage, setCurrentPage] = useState(1)
-  const [reportsPerPage] = useState(20)
-  const [sortConfig, setSortConfig] = useState({ key: "call_date", direction: "desc" })
-  const [isFilterVisible, setIsFilterVisible] = useState(false)
-  const [fromDate, setFromDate] = useState("")
-  const [toDate, setToDate] = useState("")
-  const [isDeleting, setIsDeleting] = useState(false)
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [reportsPerPage] = useState(20);
+  const [sortConfig, setSortConfig] = useState({
+    key: "call_date",
+    direction: "desc",
+  });
+  const [isFilterVisible, setIsFilterVisible] = useState(false);
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
+  const [isDeleting, setIsDeleting] = useState(false);
   // const [reports, setReports] = useState([]);
   const [limit, setLimit] = useState(20);
   const [offset, setOffset] = useState(0);
@@ -133,7 +151,7 @@ export function ReportsList() {
     customer_number: "",
     call_type: "",
     // caller_sentiment: "",
-  })
+  });
 
   // Individual column sort states
   const [columnSorts, setColumnSorts] = useState({
@@ -144,15 +162,17 @@ export function ReportsList() {
     customer_number: null,
     call_type: "",
     // caller_sentiment: null,
-  })
+  });
 
-  const router = useRouter()
-  const { setSelectedReport } = useReportStore()
+  const router = useRouter();
+  const { setSelectedReport } = useReportStore();
 
   // Blob shape decorations
   const Blob = ({ className }: any) => (
-    <div className={`absolute blur-3xl opacity-20 rounded-full mix-blend-multiply ${className}`}></div>
-  )
+    <div
+      className={`absolute blur-3xl opacity-20 rounded-full mix-blend-multiply ${className}`}
+    ></div>
+  );
 
   // const fetchReports = async () => {
   //   setLoading(true)
@@ -178,7 +198,9 @@ export function ReportsList() {
     setLoading(true);
     try {
       const offset = (page - 1) * reportsPerPage;
-      const res = await fetch(`https://voiceiq-db.indominuslabs.in/logs/all?limit=${reportsPerPage}&offset=${offset}`);
+      const res = await fetch(
+        `${BASE_URL}/logs/all?limit=${reportsPerPage}&offset=${offset}`
+      );
       const data = await res.json();
       setReports(data.data || []);
     } catch (err) {
@@ -193,80 +215,84 @@ export function ReportsList() {
   // }, [])
   useEffect(() => {
     setLoading(true);
-  fetch(`https://voiceiq-db.indominuslabs.in/logs/all?limit=${limit}&offset=${offset}`)
-    .then(res => res.json())
-    .then(data => {
-      setReports(data.data);
-      setLimit(data.limit);
-      setOffset(data.offset);
-      setTotal(data.total);
-      setLoading(false);
-    })
-    .catch(() => setLoading(false));
-}, [limit, offset]);
+    fetch(`${BASE_URL}/logs/all?limit=${limit}&offset=${offset}`)
+      .then((res) => res.json())
+      .then((data) => {
+        setReports(data.data);
+        setLimit(data.limit);
+        setOffset(data.offset);
+        setTotal(data.total);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, [limit, offset]);
 
   // Update the isDateInRange function:
   const isDateInRange = (callDate: string) => {
-    if (!fromDate && !toDate) return true
-    if (!callDate) return true // Handle null/undefined call_date
+    if (!fromDate && !toDate) return true;
+    if (!callDate) return true; // Handle null/undefined call_date
 
-    const reportDate = DateTime.fromISO(callDate)
-    const fromDateTime = fromDate ? DateTime.fromISO(fromDate + "T00:00:00").startOf("day") : null
-    const toDateTime = toDate ? DateTime.fromISO(toDate + "T23:59:59").endOf("day") : null
+    const reportDate = DateTime.fromISO(callDate);
+    const fromDateTime = fromDate
+      ? DateTime.fromISO(fromDate + "T00:00:00").startOf("day")
+      : null;
+    const toDateTime = toDate
+      ? DateTime.fromISO(toDate + "T23:59:59").endOf("day")
+      : null;
 
     if (fromDateTime && toDateTime) {
-      return reportDate >= fromDateTime && reportDate <= toDateTime
+      return reportDate >= fromDateTime && reportDate <= toDateTime;
     } else if (fromDateTime) {
-      return reportDate >= fromDateTime
+      return reportDate >= fromDateTime;
     } else if (toDateTime) {
-      return reportDate <= toDateTime
+      return reportDate <= toDateTime;
     }
 
-    return true
-  }
+    return true;
+  };
 
   // Clear date filters
   const clearDateFilters = () => {
-    setFromDate("")
-    setToDate("")
-    setCurrentPage(1)
-  }
+    setFromDate("");
+    setToDate("");
+    setCurrentPage(1);
+  };
 
   // Handle column filter change
   const handleColumnFilterChange = (column: string, value: string) => {
     setColumnFilters((prev) => ({
       ...prev,
       [column]: value,
-    }))
-    setCurrentPage(1)
-  }
+    }));
+    setCurrentPage(1);
+  };
 
   // Handle column sort
   const handleColumnSort = (column: string) => {
-    const currentSort = columnSorts[column]
-    let newSort = "asc"
+    const currentSort = columnSorts[column];
+    let newSort = "asc";
 
     if (currentSort === "asc") {
-      newSort = "desc"
+      newSort = "desc";
     } else if (currentSort === "desc") {
-      newSort = ""
+      newSort = "";
     }
 
     // Reset all other column sorts
     const resetSorts = Object.keys(columnSorts).reduce((acc, key) => {
-      acc[key] = key === column ? newSort : null
-      return acc
-    }, {} as any)
+      acc[key] = key === column ? newSort : null;
+      return acc;
+    }, {} as any);
 
-    setColumnSorts(resetSorts)
+    setColumnSorts(resetSorts);
 
     // Update main sort config
     if (newSort) {
-      setSortConfig({ key: column, direction: newSort })
+      setSortConfig({ key: column, direction: newSort });
     } else {
-      setSortConfig({ key: "created_at", direction: "desc" })
+      setSortConfig({ key: "created_at", direction: "desc" });
     }
-  }
+  };
 
   // Clear all filters
   const clearAllFilters = () => {
@@ -278,20 +304,20 @@ export function ReportsList() {
       customer_number: "",
       call_type: "",
       // caller_sentiment: "",
-    })
-    setSearchQuery("")
-    setFromDate("")
-    setToDate("")
-    setCurrentPage(1)
-  }
+    });
+    setSearchQuery("");
+    setFromDate("");
+    setToDate("");
+    setCurrentPage(1);
+  };
 
   // Parse markdown using MDX serializer
   const parseMarkdownWithMDX = async (markdown: any) => {
-    if (!markdown) return { title: "", mdxSource: null }
+    if (!markdown) return { title: "", mdxSource: null };
 
     // Extract title (assuming first line is title)
-    const lines = markdown.split(/\r?\n/)
-    const title = lines[0] || "Report"
+    const lines = markdown.split(/\r?\n/);
+    const title = lines[0] || "Report";
 
     try {
       // Serialize the markdown content with MDX
@@ -301,176 +327,187 @@ export function ReportsList() {
           remarkPlugins: [],
           rehypePlugins: [],
         },
-      })
+      });
 
-      return { title, mdxSource }
+      return { title, mdxSource };
     } catch (error) {
-      console.error("Error parsing markdown with MDX:", error)
-      return { title, mdxSource: null }
+      console.error("Error parsing markdown with MDX:", error);
+      return { title, mdxSource: null };
     }
-  }
+  };
   const deleteReport = async (report: any) => {
-    setIsDeleting(true)
+    setIsDeleting(true);
 
     try {
-      const response = await fetch(`http://127.0.0.1:8000/delete_log?id=${encodeURIComponent(report.id)}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
+      const response = await fetch(
+        `${BASE_URL}/delete_log?id=${encodeURIComponent(report.id)}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          // No body needed
         }
-        // No body needed
-      })
+      );
 
       if (!response.ok) {
         if (response.status === 422) {
-          const errorData = await response.json()
-          console.error('Validation error:', errorData)
-          throw new Error('Invalid request parameters')
+          const errorData = await response.json();
+          console.error("Validation error:", errorData);
+          throw new Error("Invalid request parameters");
         }
-        throw new Error(`HTTP error! status: ${response.status}`)
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const result = await response.json()
-      console.log('Delete successful:', result)
+      const result = await response.json();
+      console.log("Delete successful:", result);
 
-      await fetchReports()
-
+      await fetchReports();
     } catch (error) {
-      console.error('Error deleting report:', error)
+      console.error("Error deleting report:", error);
     } finally {
-      setIsDeleting(false)
+      setIsDeleting(false);
     }
-  }
-
+  };
 
   const generatePDF = async (report: any) => {
     // Initialize PDF document
-    const doc = new jsPDF()
+    const doc = new jsPDF();
 
     // Parse the markdown using MDX
-    const { title } = await parseMarkdownWithMDX(report.report_generated)
+    const { title } = await parseMarkdownWithMDX(report.report_generated);
 
     // Extract plain text content for PDF
     // For PDF generation, we'll still need to convert MDX to plain text/structure
-    const content = report.report_generated || ""
-    const lines = content.split(/\r?\n/)
-    const reportTitle = lines[0] || "Report"
+    const content = report.report_generated || "";
+    const lines = content.split(/\r?\n/);
+    const reportTitle = lines[0] || "Report";
 
     // Add header with caller info
-    doc.setFillColor(41, 98, 255) // Blue header
-    doc.rect(0, 0, doc.internal.pageSize.getWidth(), 40, "F")
+    doc.setFillColor(41, 98, 255); // Blue header
+    doc.rect(0, 0, doc.internal.pageSize.getWidth(), 40, "F");
 
     // Add title
-    doc.setTextColor(255, 255, 255) // White text
-    doc.setFont("helvetica", "bold")
-    doc.setFontSize(18)
-    doc.text(reportTitle, 20, 20)
+    doc.setTextColor(255, 255, 255); // White text
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(18);
+    doc.text(reportTitle, 20, 20);
 
     // Add caller info
-    doc.setFontSize(12)
-    doc.text(`Caller: ${report.caller_name || "Unknown"}`, 20, 30)
+    doc.setFontSize(12);
+    doc.text(`Caller: ${report.caller_name || "Unknown"}`, 20, 30);
 
     // Reset text color for main content
-    doc.setTextColor(0, 0, 0)
+    doc.setTextColor(0, 0, 0);
 
     // Parse content sections using regex patterns
-    let yPosition = 50 // Start position after header
+    let yPosition = 50; // Start position after header
 
     for (let i = 1; i < lines.length; i++) {
-      const line = lines[i].trim()
+      const line = lines[i].trim();
 
       // Skip empty lines
-      if (!line) continue
+      if (!line) continue;
 
       // Check if we need a new page
       if (yPosition > doc.internal.pageSize.getHeight() - 20) {
-        doc.addPage()
-        yPosition = 20
+        doc.addPage();
+        yPosition = 20;
       }
 
       // Check for headings (# Heading)
       if (line.match(/^#{1,3}\s/)) {
         // Add space before new section
-        yPosition += 10
+        yPosition += 10;
 
-        const headingMatch = line.match(/^(#+)/)
-        const headingLevel = headingMatch ? headingMatch[0].length : 1
-        const headingText = line.replace(/^#+\s+/, "")
+        const headingMatch = line.match(/^(#+)/);
+        const headingLevel = headingMatch ? headingMatch[0].length : 1;
+        const headingText = line.replace(/^#+\s+/, "");
 
         // Set font size based on heading level
-        const fontSize = 18 - headingLevel * 2
+        const fontSize = 18 - headingLevel * 2;
 
-        doc.setFont("helvetica", "bold")
-        doc.setFontSize(fontSize)
-        doc.setTextColor(41, 98, 255) // Blue for headings
-        doc.text(headingText, 20, yPosition)
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(fontSize);
+        doc.setTextColor(41, 98, 255); // Blue for headings
+        doc.text(headingText, 20, yPosition);
 
-        yPosition += 8
-        continue
+        yPosition += 8;
+        continue;
       }
 
       // Regular text content
-      doc.setFont("helvetica", "normal")
-      doc.setFontSize(12)
-      doc.setTextColor(0, 0, 0) // Black for content
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(12);
+      doc.setTextColor(0, 0, 0); // Black for content
 
       // Handle bullet points
-      let textLine = line
-      let indent = 0
+      let textLine = line;
+      let indent = 0;
 
       if (line.match(/^\s*[-*]\s/)) {
-        textLine = `• ${line.replace(/^\s*[-*]\s/, "")}`
-        indent = 5
+        textLine = `• ${line.replace(/^\s*[-*]\s/, "")}`;
+        indent = 5;
       }
       // Handle checkboxes
       else if (line.match(/^\s*- \[[ x]\]\s/)) {
-        const isChecked = line.includes("[x]")
-        textLine = `${isChecked ? "☑" : "☐"} ${line.replace(/^\s*- \[[ x]\]\s/, "")}`
-        indent = 5
+        const isChecked = line.includes("[x]");
+        textLine = `${isChecked ? "☑" : "☐"} ${line.replace(
+          /^\s*- \[[ x]\]\s/,
+          ""
+        )}`;
+        indent = 5;
       }
 
       // Split long text to fit page width
-      const textLines = doc.splitTextToSize(textLine, 170 - indent)
+      const textLines = doc.splitTextToSize(textLine, 170 - indent);
 
-      doc.text(textLines, 20 + indent, yPosition)
-      yPosition += textLines.length * 7 // Add space based on number of lines
+      doc.text(textLines, 20 + indent, yPosition);
+      yPosition += textLines.length * 7; // Add space based on number of lines
     }
 
     // Add footer
-    const pageCount = doc.internal.pages.length - 1
+    const pageCount = doc.internal.pages.length - 1;
     for (let i = 1; i <= pageCount; i++) {
-      doc.setPage(i)
-      doc.setFontSize(10)
-      doc.setTextColor(150, 150, 150) // Gray for footer
+      doc.setPage(i);
+      doc.setFontSize(10);
+      doc.setTextColor(150, 150, 150); // Gray for footer
       doc.text(
         `Page ${i} of ${pageCount}`,
         doc.internal.pageSize.getWidth() / 2,
         doc.internal.pageSize.getHeight() - 10,
-        { align: "center" },
-      )
+        { align: "center" }
+      );
 
       // Add timestamp
-      const timestamp = new Date().toLocaleString()
-      doc.text(`Generated: ${timestamp}`, 20, doc.internal.pageSize.getHeight() - 10)
+      const timestamp = new Date().toLocaleString();
+      doc.text(
+        `Generated: ${timestamp}`,
+        20,
+        doc.internal.pageSize.getHeight() - 10
+      );
     }
 
     // Download the PDF
-    const fileName = `${report.caller_name || "report"}-${report.id.slice(0, 8)}.pdf`
-    doc.save(fileName)
-  }
+    const fileName = `${report.caller_name || "report"}-${report.id.slice(
+      0,
+      8
+    )}.pdf`;
+    doc.save(fileName);
+  };
 
   // Apply sorting
   const sortedReports = useMemo(() => {
     return [...reports].sort((a: any, b: any) => {
       if (a[sortConfig.key] < b[sortConfig.key]) {
-        return sortConfig.direction === "asc" ? -1 : 1
+        return sortConfig.direction === "asc" ? -1 : 1;
       }
       if (a[sortConfig.key] > b[sortConfig.key]) {
-        return sortConfig.direction === "asc" ? 1 : -1
+        return sortConfig.direction === "asc" ? 1 : -1;
       }
-      return 0
-    })
-  }, [reports, sortConfig])
+      return 0;
+    });
+  }, [reports, sortConfig]);
 
   // Apply filters
   const filteredReports = useMemo(() => {
@@ -480,22 +517,31 @@ export function ReportsList() {
       //   report.caller_name?.toLowerCase().includes(searchQuery.toLowerCase())
       const matchesGlobalSearch =
         !searchQuery ||
-        (report.caller_name && report.caller_name.toLowerCase().includes(searchQuery.toLowerCase()))
+        (report.caller_name &&
+          report.caller_name.toLowerCase().includes(searchQuery.toLowerCase()));
       // Individual column filters
       const matchesDateFilter =
         !columnFilters.call_date ||
-        (report.call_date && report.call_date.toLowerCase().includes(columnFilters.call_date.toLowerCase()));
-
+        (report.call_date &&
+          report.call_date
+            .toLowerCase()
+            .includes(columnFilters.call_date.toLowerCase()));
 
       const matchesCallerName =
         !columnFilters.caller_name ||
-        (report.caller_name && report.caller_name.toLowerCase().includes(columnFilters.caller_name.toLowerCase()));
+        (report.caller_name &&
+          report.caller_name
+            .toLowerCase()
+            .includes(columnFilters.caller_name.toLowerCase()));
 
       // Filter for In/Out Bound Calls
 
       const matchesCallType =
         !columnFilters.call_type ||
-        (report.call_type && report.call_type.toLowerCase().includes(columnFilters.call_type.toLowerCase()));
+        (report.call_type &&
+          report.call_type
+            .toLowerCase()
+            .includes(columnFilters.call_type.toLowerCase()));
       // const matchesRequestType =
       //   !columnFilters.request_type ||
       //   report.request_type?.toLowerCase().includes(columnFilters.request_type.toLowerCase())
@@ -504,21 +550,27 @@ export function ReportsList() {
       //   !columnFilters.toll_free_did
 
       // const matchesCustomerNumber =
-      //   !columnFilters.customer_number 
+      //   !columnFilters.customer_number
 
       const matchesTollFreeDid =
         !columnFilters.toll_free_did ||
-        (report.toll_free_did && report.toll_free_did.toLowerCase().includes(columnFilters.toll_free_did.toLowerCase()));
+        (report.toll_free_did &&
+          report.toll_free_did
+            .toLowerCase()
+            .includes(columnFilters.toll_free_did.toLowerCase()));
 
       const matchesCustomerNumber =
         !columnFilters.customer_number ||
-        (report.customer_number && report.customer_number.toLowerCase().includes(columnFilters.customer_number.toLowerCase()));
+        (report.customer_number &&
+          report.customer_number
+            .toLowerCase()
+            .includes(columnFilters.customer_number.toLowerCase()));
 
       // const matchesSentiment =
       //   !columnFilters.caller_sentiment ||
       //   report.caller_sentiment?.toLowerCase().includes(columnFilters.caller_sentiment.toLowerCase())
 
-      const matchesDateRange = isDateInRange(report.call_date)
+      const matchesDateRange = isDateInRange(report.call_date);
 
       return (
         matchesGlobalSearch &&
@@ -528,9 +580,9 @@ export function ReportsList() {
         matchesCustomerNumber &&
         matchesCallType &&
         matchesDateRange
-      )
-    })
-  }, [sortedReports, searchQuery, columnFilters, fromDate, toDate])
+      );
+    });
+  }, [sortedReports, searchQuery, columnFilters, fromDate, toDate]);
 
   // Function to determine sentiment color
   // const getSentimentColor = (sentiment: any) => {
@@ -561,10 +613,10 @@ export function ReportsList() {
   // Calculate the correct indices for the current page
   const startIdx = (currentPage - 1) * reportsPerPage + 1;
   const endIdx = startIdx + currentReports.length - 1;
-  const totalPages = Math.ceil(filteredReports.length / reportsPerPage)
+  const totalPages = Math.ceil(filteredReports.length / reportsPerPage);
 
   // Change page
-  const paginate = (pageNumber: number) => setCurrentPage(pageNumber)
+  const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
 
   return (
     <div className="relative overflow-hidden">
@@ -572,7 +624,11 @@ export function ReportsList() {
       <Blob className="bg-blue-300 w-64 h-64 -top-20 -left-20" />
       <Blob className="bg-purple-300 w-72 h-72 -bottom-20 -right-20" />
 
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
         <Card className="backdrop-blur-sm bg-white/90 dark:bg-black border border-gray-100 dark:border-gray-800 shadow-xl rounded-2xl">
           <CardHeader className="border-b border-gray-100 dark:border-gray-800">
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
@@ -644,7 +700,9 @@ export function ReportsList() {
                 >
                   <div className="pt-4 space-y-4">
                     <div>
-                      <p className="text-sm font-medium mb-3 text-gray-500">Date Range Filter</p>
+                      <p className="text-sm font-medium mb-3 text-gray-500">
+                        Date Range Filter
+                      </p>
                       <DateRangePicker
                         fromDate={fromDate}
                         toDate={toDate}
@@ -737,7 +795,9 @@ export function ReportsList() {
                         <TableCell colSpan={8} className="h-32">
                           <div className="flex flex-col items-center justify-center">
                             <div className="h-8 w-8 rounded-full border-2 border-blue-500 border-r-transparent animate-spin"></div>
-                            <p className="mt-2 text-sm text-gray-500">Loading reports...</p>
+                            <p className="mt-2 text-sm text-gray-500">
+                              Loading reports...
+                            </p>
                           </div>
                         </TableCell>
                       </TableRow>
@@ -760,7 +820,9 @@ export function ReportsList() {
                                 />
                               </svg>
                             </div>
-                            <p className="mt-2 text-red-500 font-medium">{error}</p>
+                            <p className="mt-2 text-red-500 font-medium">
+                              {error}
+                            </p>
                           </div>
                         </TableCell>
                       </TableRow>
@@ -771,9 +833,15 @@ export function ReportsList() {
                             <div className="rounded-full bg-gray-100 dark:bg-gray-800 p-3">
                               <FileText className="h-6 w-6 text-gray-400" />
                             </div>
-                            <p className="mt-2 text-gray-500">No reports found.</p>
-                            {(fromDate || toDate || Object.values(columnFilters).some((f) => f)) && (
-                              <p className="text-xs text-gray-400 mt-1">Try adjusting your filters</p>
+                            <p className="mt-2 text-gray-500">
+                              No reports found.
+                            </p>
+                            {(fromDate ||
+                              toDate ||
+                              Object.values(columnFilters).some((f) => f)) && (
+                              <p className="text-xs text-gray-400 mt-1">
+                                Try adjusting your filters
+                              </p>
                             )}
                           </div>
                         </TableCell>
@@ -820,13 +888,14 @@ export function ReportsList() {
                               </Button>
                             </TableCell> */}
                             <TableCell>
-                              {report.caller_name && report.caller_name !== "null" ? (
+                              {report.caller_name &&
+                              report.caller_name !== "null" ? (
                                 <Button
                                   variant="ghost"
                                   className="px-0 font-medium text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors duration-200 text-[1.1rem]"
                                   onClick={() => {
-                                    setSelectedReport(report)
-                                    router.push(`/reports/${report.id}`)
+                                    setSelectedReport(report);
+                                    router.push(`/reports/${report.id}`);
                                   }}
                                 >
                                   {report.caller_name}
@@ -846,7 +915,9 @@ export function ReportsList() {
                             </TableCell>
                             <TableCell>
                               {report.status === "processing" ? (
-                                <span className="px-2 py-1 rounded bg-yellow-100 text-yellow-800 text-xs">Processing</span>
+                                <span className="px-2 py-1 rounded bg-yellow-100 text-yellow-800 text-xs">
+                                  Processing
+                                </span>
                               ) : (
                                 <span className="px-2 py-1 rounded bg-green-100 text-green-800 text-xs capitalize">
                                   {report.status}
@@ -877,8 +948,8 @@ export function ReportsList() {
                                   size="icon"
                                   className="h-8 w-8 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200"
                                   onClick={() => {
-                                    setSelectedReport(report)
-                                    router.push(`/reports/${report.id}`)
+                                    setSelectedReport(report);
+                                    router.push(`/reports/${report.id}`);
                                   }}
                                   title="View Report"
                                   disabled={report.status === "processing"}
@@ -902,9 +973,12 @@ export function ReportsList() {
                                       size="icon"
                                       className="h-8 w-8 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200"
                                       title="Delete Report"
-                                    // disabled={isDeleting || report.status === "processing"}
+                                      // disabled={isDeleting || report.status === "processing"}
                                     >
-                                      <FileX color="red" className="h-4 w-4 text-gray-500" />
+                                      <FileX
+                                        color="red"
+                                        className="h-4 w-4 text-gray-500"
+                                      />
                                     </Button>
                                   </AlertDialogTrigger>
 
@@ -915,8 +989,11 @@ export function ReportsList() {
                                         Delete Report
                                       </AlertDialogTitle>
                                       <AlertDialogDescription className="text-left">
-                                        Are you sure you want to delete the report for "{report.caller_name || 'Unknown Caller'}"?
-                                        This action cannot be undone and will permanently remove the report.
+                                        Are you sure you want to delete the
+                                        report for "
+                                        {report.caller_name || "Unknown Caller"}
+                                        "? This action cannot be undone and will
+                                        permanently remove the report.
                                       </AlertDialogDescription>
                                     </AlertDialogHeader>
 
@@ -938,7 +1015,7 @@ export function ReportsList() {
                                             Deleting...
                                           </div>
                                         ) : (
-                                          'Delete Report'
+                                          "Delete Report"
                                         )}
                                       </AlertDialogAction>
                                     </AlertDialogFooter>
@@ -947,7 +1024,7 @@ export function ReportsList() {
                               </div>
                             </TableCell>
                           </TableRow>
-                        )
+                        );
                       })
                     )}
                   </TableBody>
@@ -960,8 +1037,10 @@ export function ReportsList() {
               <div className="px-4 py-4 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between">
                 <div className="text-sm text-gray-500">
                   Showing <span className="font-medium">{offset + 1}</span> to{" "}
-                  <span className="font-medium">{Math.min(offset + limit, total)}</span> of{" "}
-                  <span className="font-medium">{total}</span> reports
+                  <span className="font-medium">
+                    {Math.min(offset + limit, total)}
+                  </span>{" "}
+                  of <span className="font-medium">{total}</span> reports
                 </div>
                 <div className="flex items-center gap-1">
                   <Button
@@ -989,5 +1068,5 @@ export function ReportsList() {
         </Card>
       </motion.div>
     </div>
-  )
+  );
 }

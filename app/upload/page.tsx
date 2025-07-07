@@ -1,12 +1,13 @@
-"use client"
+"use client";
 
 import { useState, useEffect, useCallback } from "react";
 import { DashboardHeader } from "@/components/dashboard-header";
 import { DashboardShell } from "@/components/dashboard-shell";
 import { AudioUploader } from "@/components/audio-uploader";
-import { useToast } from "@/hooks/use-toast"
+import { useToast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
 import { Loader2 } from "lucide-react";
+import { BASE_URL } from "@/lib/constants";
 
 export default function UploadPage() {
   const { toast } = useToast();
@@ -22,7 +23,7 @@ export default function UploadPage() {
 
   // Receive files from AudioUploader when they're ready for processing
   const handleUploadComplete = (file: File) => {
-    setFileQueue(prev => [...prev, file]);
+    setFileQueue((prev) => [...prev, file]);
     toast({
       title: "File ready for processing",
       description: `"${file.name}" has been added to the processing queue.`,
@@ -34,7 +35,7 @@ export default function UploadPage() {
     if (fileQueue.length > 0 && !isUploading) {
       const nextFile = fileQueue[0];
       setCurrentFile(nextFile);
-      setFileQueue(prev => prev.slice(1));
+      setFileQueue((prev) => prev.slice(1));
       await uploadFileToServer(nextFile);
     }
   }, [fileQueue, isUploading]);
@@ -85,7 +86,7 @@ export default function UploadPage() {
       });
 
       // Set up and send the request
-      xhr.open("POST", "https://voiceiq-db.indominuslabs.in/create_log", true);
+      xhr.open("POST", `${BASE_URL}/create_log`, true);
       xhr.send(formData);
 
       // Wait for the upload to complete
@@ -100,7 +101,6 @@ export default function UploadPage() {
       setCurrentFile(null);
       setIsUploading(false);
       setUploadProgress(0);
-
     } catch (error) {
       setIsUploading(false);
 
@@ -131,18 +131,19 @@ export default function UploadPage() {
                 <p className="text-sm font-medium mb-1">{currentFile.name}</p>
                 <Progress value={uploadProgress} className="h-2 w-full" />
               </div>
-              {isUploading && (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              )}
+              {isUploading && <Loader2 className="h-4 w-4 animate-spin" />}
             </div>
           </div>
         )}
 
         {fileQueue.length > 0 && (
           <div className="rounded-lg border p-4">
-            <h3 className="font-medium mb-2">Processing Queue ({fileQueue.length} files)</h3>
+            <h3 className="font-medium mb-2">
+              Processing Queue ({fileQueue.length} files)
+            </h3>
             <div className="text-sm text-muted-foreground">
-              Files will be processed automatically in the order they were added.
+              Files will be processed automatically in the order they were
+              added.
             </div>
           </div>
         )}

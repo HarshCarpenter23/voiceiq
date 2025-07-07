@@ -6,6 +6,7 @@ import { Button } from "./ui/button";
 import { SendHorizontal, Loader2, Mic, Square } from "lucide-react";
 import { cn } from "@/lib/utils";
 import ReactMarkdown from "react-markdown"; // ✅ Markdown support
+import { BASE_URL } from "@/lib/constants";
 
 const ChatBox = ({ messages, setMessages }) => {
   const params = useParams();
@@ -115,13 +116,10 @@ const ChatBox = ({ messages, setMessages }) => {
       formData.append("file", audioBlob, "recording.wav");
       formData.append("uuid", uuid);
 
-      const res = await fetch(
-        "https://voiceiq-db.indominuslabs.in/voice_chat",
-        {
-          method: "POST",
-          body: formData,
-        }
-      );
+      const res = await fetch(`${BASE_URL}/voice_chat`, {
+        method: "POST",
+        body: formData,
+      });
 
       const data = await res.json();
 
@@ -193,7 +191,7 @@ const ChatBox = ({ messages, setMessages }) => {
     setIsLoading(true);
 
     try {
-      const res = await fetch("https://voiceiq-db.indominuslabs.in/chat", {
+      const res = await fetch(`${BASE_URL}/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -245,7 +243,7 @@ const ChatBox = ({ messages, setMessages }) => {
           renderEmptyState()
         ) : (
           <>
-            {messages.map((msg, idx) => (
+            {messages.map((msg: any, idx: any) => (
               <div
                 key={idx}
                 className={cn(
