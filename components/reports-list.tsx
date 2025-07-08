@@ -150,6 +150,7 @@ export function ReportsList() {
     toll_free_did: "",
     customer_number: "",
     call_type: "",
+    filename: "",
     // caller_sentiment: "",
   });
 
@@ -161,6 +162,7 @@ export function ReportsList() {
     toll_free_did: null,
     customer_number: null,
     call_type: "",
+    filename: "",
     // caller_sentiment: null,
   });
 
@@ -303,6 +305,7 @@ export function ReportsList() {
       toll_free_did: "",
       customer_number: "",
       call_type: "",
+      filename: "",
       // caller_sentiment: "",
     });
     setSearchQuery("");
@@ -734,7 +737,7 @@ export function ReportsList() {
                           handleColumnSort={handleColumnSort}
                         />
                       </TableHead>
-                      <TableHead className="font-semibold min-w-[150px]">
+                      {/* <TableHead className="font-semibold min-w-[150px]">
                         <ColumnHeader
                           column="call_type"
                           icon={<ArrowRightLeft className="h-4 w-4" />}
@@ -744,19 +747,19 @@ export function ReportsList() {
                           handleColumnFilterChange={handleColumnFilterChange}
                           handleColumnSort={handleColumnSort}
                         />
-                      </TableHead>
+                      </TableHead> */}
                       <TableHead className="font-semibold min-w-[180px]">
                         <ColumnHeader
-                          column="caller_name"
+                          column="filename"
                           icon={<UserRound className="h-4 w-4" />}
-                          label="Caller Name"
+                          label="File Name"
                           columnFilters={columnFilters}
                           columnSorts={columnSorts}
                           handleColumnFilterChange={handleColumnFilterChange}
                           handleColumnSort={handleColumnSort}
                         />
                       </TableHead>
-                      <TableHead className="font-semibold min-w-[150px]">
+                      {/* <TableHead className="font-semibold min-w-[150px]">
                         <ColumnHeader
                           column="toll_free_did"
                           icon={<Headset className="h-4 w-4" />}
@@ -777,7 +780,7 @@ export function ReportsList() {
                           handleColumnFilterChange={handleColumnFilterChange}
                           handleColumnSort={handleColumnSort}
                         />
-                      </TableHead>
+                      </TableHead> */}
                       <TableHead className="font-semibold min-w-[120px]">
                         <span>Status</span>
                       </TableHead>
