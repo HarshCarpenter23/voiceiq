@@ -861,7 +861,7 @@ export function ReportsList() {
                             <TableCell className="text-gray-600 dark:text-gray-300">
                               {report.call_date || "-"}
                             </TableCell>
-                            <TableCell className="text-gray-600 dark:text-gray-300">
+                            {/* <TableCell className="text-gray-600 dark:text-gray-300">
                               <div className="flex items-center gap-2">
                                 {report.call_type === "in" ? (
                                   <>
@@ -877,7 +877,7 @@ export function ReportsList() {
                                   report.call_type
                                 )}
                               </div>
-                            </TableCell>
+                            </TableCell> */}
                             {/* <TableCell>
                               <Button
                                 variant="ghost"
@@ -891,8 +891,8 @@ export function ReportsList() {
                               </Button>
                             </TableCell> */}
                             <TableCell>
-                              {report.caller_name &&
-                              report.caller_name !== "null" ? (
+                              {report.filename &&
+                              report.filename !== "null" ? (
                                 <Button
                                   variant="ghost"
                                   className="px-0 font-medium text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors duration-200 text-[1.1rem]"
@@ -901,7 +901,7 @@ export function ReportsList() {
                                     router.push(`/reports/${report.id}`);
                                   }}
                                 >
-                                  {report.caller_name}
+                                  {report.filename}
                                 </Button>
                               ) : (
                                 <span>-</span>
@@ -910,12 +910,12 @@ export function ReportsList() {
                             {/* <TableCell className="text-gray-600 dark:text-gray-300">
                               {report.request_type?.charAt(0).toUpperCase() + report.request_type?.slice(1) || "-"}
                             </TableCell> */}
-                            <TableCell className="text-gray-600 dark:text-gray-300">
+                            {/* <TableCell className="text-gray-600 dark:text-gray-300">
                               {report.toll_free_did || "-"}
-                            </TableCell>
-                            <TableCell className="text-gray-600 dark:text-gray-300">
+                            </TableCell> */}
+                            {/* <TableCell className="text-gray-600 dark:text-gray-300">
                               {report.customer_number || "-"}
-                            </TableCell>
+                            </TableCell> */}
                             <TableCell>
                               {report.status === "processing" ? (
                                 <span className="px-2 py-1 rounded bg-yellow-100 text-yellow-800 text-xs">
