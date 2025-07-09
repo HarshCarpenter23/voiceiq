@@ -727,7 +727,7 @@ export function ReportsList() {
                         <ColumnHeader
                           column="call_date"
                           icon={<Phone className="h-4 w-4" />}
-                          label="Date"
+                          label="Call Date"
                           columnFilters={columnFilters}
                           columnSorts={columnSorts}
                           handleColumnFilterChange={handleColumnFilterChange}
