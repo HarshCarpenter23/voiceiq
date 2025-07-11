@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calendar, ChevronLeft, ChevronRight, X } from "lucide-react"
@@ -12,10 +12,18 @@ interface DateRangePickerProps {
   onFromDateChange: (date: string) => void
   onToDateChange: (date: string) => void
   onClear: () => void
+  onClose?: () => void // <-- add this
 }
 
-export function DateRangePicker({ fromDate, toDate, onFromDateChange, onToDateChange, onClear }: DateRangePickerProps) {
-  const [isOpen, setIsOpen] = useState(false)
+export function DateRangePicker({
+  fromDate,
+  toDate,
+  onFromDateChange,
+  onToDateChange,
+  onClear,
+  onClose,
+}: DateRangePickerProps) {
+  const [isOpen, setIsOpen] = useState(true); // default open
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const [selectingType, setSelectingType] = useState<"from" | "to">("from")
   const [mounted, setMounted] = useState(false)
@@ -24,6 +32,18 @@ export function DateRangePicker({ fromDate, toDate, onFromDateChange, onToDateCh
   useEffect(() => {
     setMounted(true)
   }, [])
+
+  // Close popover when both dates are set
+  // useEffect(() => {
+  //   if (fromDate && toDate) {
+  //     setIsOpen(false);
+  //   }
+  // }, [fromDate, toDate]);
+
+  // Call onClose when popover closes
+  useEffect(() => {
+    if (!isOpen && onClose) onClose();
+  }, [isOpen, onClose]);
 
   const formatDisplayDate = (dateString: string) => {
     if (!dateString || !mounted) return null
@@ -119,70 +139,37 @@ export function DateRangePicker({ fromDate, toDate, onFromDateChange, onToDateCh
 
   const weekDays = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"]
 
+  // Format for compact display
+  const compactLabel = fromDate && toDate
+    ? `${fromDate} ~ ${toDate}`
+    : fromDate
+      ? `${fromDate} ~`
+      : toDate
+        ? `~ ${toDate}`
+        : "Select date range";
+
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            className={cn(
-              "flex-1 justify-start text-left font-normal h-auto p-3 rounded-xl",
-              !fromDate && "text-muted-foreground",
-            )}
-          >
-            <div className="flex items-center gap-2 w-full">
-              <Calendar className="h-4 w-4 text-blue-500" />
-              <div className="flex-1">
-                <div className="text-xs text-blue-500 font-medium">From Date</div>
-                {fromDateFormatted ? (
-                  <div>
-                    <div className="font-semibold text-lg">{fromDateFormatted.full}</div>
-                    <div className="text-xs text-gray-500">{fromDateFormatted.dayName}</div>
-                  </div>
-                ) : (
-                  <div className="text-sm">Select date</div>
-                )}
-              </div>
-            </div>
-          </Button>
-
-          <Button
-            variant="outline"
-            className={cn(
-              "flex-1 justify-start text-left font-normal h-auto p-3 rounded-xl",
-              !toDate && "text-muted-foreground",
-            )}
-          >
-            <div className="flex items-center gap-2 w-full">
-              <Calendar className="h-4 w-4 text-blue-500" />
-              <div className="flex-1">
-                <div className="text-xs text-blue-500 font-medium">To Date</div>
-                {toDateFormatted ? (
-                  <div>
-                    <div className="font-semibold text-lg">{toDateFormatted.full}</div>
-                    <div className="text-xs text-gray-500">{toDateFormatted.dayName}</div>
-                  </div>
-                ) : (
-                  <div className="text-sm">Select date</div>
-                )}
-              </div>
-            </div>
-          </Button>
-
+        <Button
+          variant="outline"
+          size="sm"
+          className="flex items-center gap-2 px-3 py-1 rounded-full text-xs h-8"
+        >
+          <Calendar className="h-4 w-4 text-blue-500" />
+          <span className={fromDate || toDate ? "text-gray-900" : "text-gray-400"}>
+            {compactLabel}
+          </span>
           {(fromDate || toDate) && (
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={(e) => {
-                e.stopPropagation()
-                onClear()
+            <X
+              className="h-3 w-3 ml-1 text-gray-400 hover:text-red-500 cursor-pointer"
+              onClick={e => {
+                e.stopPropagation();
+                onClear();
               }}
-              className="rounded-xl"
-            >
-              <X className="h-4 w-4" />
-            </Button>
+            />
           )}
-        </div>
+        </Button>
       </PopoverTrigger>
 
       <PopoverContent className="w-auto p-0" align="start">
