@@ -269,21 +269,21 @@ export function ReportsList() {
         ? `– ${toDate}`
         : "";
 
-  const fetchReports = async (page = 1) => {
-    setLoading(true);
-    try {
-      const offset = (page - 1) * reportsPerPage;
-      const res = await fetch(
-        `${BASE_URL}/logs/all?limit=${reportsPerPage}&offset=${offset}`
-      );
-      const data = await res.json();
-      setReports(data.data || []);
-    } catch (err) {
-      setError("Failed to load reports.");
-    } finally {
-      setLoading(false);
-    }
-  };
+  // const fetchReports = async (page = 1) => {
+  //   setLoading(true);
+  //   try {
+  //     const offset = (page - 1) * reportsPerPage;
+  //     const res = await fetch(
+  //       `${BASE_URL}/logs/all?limit=${reportsPerPage}&offset=${offset}`
+  //     );
+  //     const data = await res.json();
+  //     setReports(data.data || []);
+  //   } catch (err) {
+  //     setError("Failed to load reports.");
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
 
   useEffect(() => {
     // Only run if no date filter is set
@@ -432,6 +432,11 @@ export function ReportsList() {
   //   setOffset(0);
   // };
 
+  const clearDaterangeFilters = () => {
+    setFromDate("");
+    setToDate("");
+  };
+
   const clearAllFilters = () => {
     setColumnFilters({
       call_date: "",
@@ -441,6 +446,8 @@ export function ReportsList() {
       customer_number: "",
       toll_free_did: "",
     });
+    setFromDate("");      // <-- Reset date range!
+    setToDate("");
     setOffset(0); // (if you want to reset pagination)
   };
 
@@ -495,7 +502,7 @@ export function ReportsList() {
       const result = await response.json();
       console.log("Delete successful:", result);
 
-      await fetchReports();
+      // await fetchReports();
     } catch (error) {
       console.error("Error deleting report:", error);
     } finally {
@@ -784,26 +791,66 @@ export function ReportsList() {
     : { column: "created_at", direction: "desc" };
 
   useEffect(() => {
-    setLoading(true);
-    fetchReportSearching({
-      filters,
-      sort,
-      limit,
-      offset,
-    })
-      .then((data) => {
-        setReports(data.data || []);
-        setTotal(data.total || 0);
-        setError("");
-      })
-      .catch(() => {
-        setReports([]);
-        setTotal(0);
-        setError("Failed to load reports.");
-      })
-      .finally(() => setLoading(false));
-  }, [columnFilters, columnSorts, limit, offset]);
+    const hasAnyFilter = Object.values(columnFilters).some((v) => v);
+    const hasDateRange = fromDate && toDate;
 
+    setLoading(true);
+
+    if (hasDateRange) {
+      // Always use the date range API when date range is set
+      fetchReportSearch({
+        call_date_from: fromDate,
+        call_date_to: toDate,
+        limit,
+        offset,
+      })
+        .then((data) => {
+          setReports(data.records || data.data || []);
+          setTotal(data.total || 0);
+          setError("");
+        })
+        .catch(() => {
+          setReports([]);
+          setTotal(0);
+          setError("Failed to load reports.");
+        })
+        .finally(() => setLoading(false));
+    } else if (hasAnyFilter) {
+      // Use searching API for other filters
+      fetchReportSearching({
+        filters,
+        sort,
+        limit,
+        offset,
+      })
+        .then((data) => {
+          setReports(data.data || []);
+          setTotal(data.total || 0);
+          setError("");
+        })
+        .catch(() => {
+          setReports([]);
+          setTotal(0);
+          setError("Failed to load reports.");
+        })
+        .finally(() => setLoading(false));
+    } else {
+      // Default: show all
+      fetch(`${BASE_URL}/logs/all?limit=${limit}&offset=${offset}`)
+        .then((res) => res.json())
+        .then((data) => {
+          setReports(data.data || []);
+          setTotal(data.total || 0);
+          setError("");
+        })
+        .catch(() => {
+          setReports([]);
+          setTotal(0);
+          setError("Failed to load reports.");
+        })
+        .finally(() => setLoading(false));
+    }
+  }, [columnFilters, fromDate, toDate, limit, offset]);
   return (
     <div className="relative overflow-hidden">
       {/* Decorative blobs */}
@@ -871,14 +918,14 @@ export function ReportsList() {
                         )}
                         {toDate && formatDateDMY(toDate)}
                       </span>
-                      <X
+                      {/* <X
                         className="h-3 w-3 ml-1 text-gray-400 hover:text-red-500 cursor-pointer"
                         onClick={e => {
                           e.stopPropagation();
                           setFromDate("");
                           setToDate("");
                         }}
-                      />
+                      /> */}
                     </motion.button>
                   ) : (
                     <motion.div
@@ -934,6 +981,14 @@ export function ReportsList() {
                         onToDateChange={setToDate}
                         onClear={clearDateFilters}
                       />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="mt-3 rounded-full text-xs hover:bg-gray-100 dark:hover:bg-gray-800"
+                        onClick={clearDateFilters}
+                      >
+                        Clear Filter
+                      </Button>
                     </div>
                   </div>
                 </motion.div>
@@ -980,16 +1035,16 @@ export function ReportsList() {
                         />
                       </TableHead> */}
                       <TableHead className="font-semibold min-w-[150px]">
-                      <ColumnHeader
-                        column="call_type"
-                        icon={<Phone className="h-4 w-4" />}
-                        label="Call Type"
-                        inputValues={inputValues}
-                        handleInputChange={handleInputChange}
-                        handleCommitFilter={handleCommitFilter}
-                        columnSorts={columnSorts}
-                        handleColumnSort={handleColumnSort}
-                      /></TableHead>
+                        <ColumnHeader
+                          column="call_type"
+                          icon={<Phone className="h-4 w-4" />}
+                          label="Call Type"
+                          inputValues={inputValues}
+                          handleInputChange={handleInputChange}
+                          handleCommitFilter={handleCommitFilter}
+                          columnSorts={columnSorts}
+                          handleColumnSort={handleColumnSort}
+                        /></TableHead>
                       {/* <TableHead className="font-semibold min-w-[180px]">
                         <ColumnHeader
                           column="caller_name"
