@@ -128,7 +128,7 @@ export async function fetchReportSearch({ call_date_from, call_date_to, limit = 
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      filters: {
+      datefilter: {
         call_date_from,
         call_date_to,
       },
