@@ -63,6 +63,8 @@ import { useRouter } from "next/navigation";
 import { DateTime } from "luxon";
 import { DateRangePicker } from "./date-range-picker";
 import { BASE_URL } from "@/lib/constants";
+import { set } from "date-fns";
+import { ca } from "date-fns/locale";
 
 function convertUTCToLocalLuxon(utcTimeString: string) {
   const userTimeZone = DateTime.local().zoneName;
@@ -81,6 +83,8 @@ const ColumnHeader = ({
   inputValues,
   handleInputChange,
   handleCommitFilter,
+  setInputValues,
+  columnFilters
 }: any) => (
   <div className="space-y-2">
     <div className="flex items-center justify-between">
@@ -107,12 +111,24 @@ const ColumnHeader = ({
       (label.toLowerCase().includes("date") ? (
         <Input
           type="date"
-          value={inputValues[column] || ""}
-          onChange={handleInputChange(column)}
-          onBlur={e => handleCommitFilter(column, e.target.value)}
-          onKeyDown={e => {
-            if (e.key === "Enter") handleCommitFilter(column, e.currentTarget.value);
+          value={inputValues.call_date || ""}
+          onChange={(e)=>{
+            handleInputChange(column)
+            handleCommitFilter(column, e.currentTarget.value)
+            setInputValues(prev => ({
+              ...prev,
+              call_date: columnFilters.call_date || "",
+            }));
+
+
           }}
+          onKeyDown={e => {
+            console.log(inputValues);
+          }}
+          onBlur={e => handleCommitFilter(column, e.target.value)}
+          // onKeyDown={e => {
+          //   if (e.key === e.key) handleCommitFilter(column, e.currentTarget.value);
+          // }}
           className="h-7 text-xs bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600"
         />
       ) : (
@@ -285,24 +301,6 @@ export function ReportsList() {
   //   }
   // };
 
-  useEffect(() => {
-    // Only run if no date filter is set
-    if (fromDate || toDate) return;
-
-    setLoading(true);
-    fetch(`${BASE_URL}/logs/all?limit=${limit}&offset=${offset}`)
-      .then((res) => res.json())
-      .then((data) => {
-        setReports(data.data);
-        setTotal(data.total);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
-  }, [limit, offset, fromDate, toDate]);
-
-
-
-  // Default fetch for all reports (no date filter)
   // useEffect(() => {
   //   // Only run if no date filter is set
   //   if (fromDate || toDate) return;
@@ -312,13 +310,13 @@ export function ReportsList() {
   //     .then((res) => res.json())
   //     .then((data) => {
   //       setReports(data.data);
-  //       setLimit(data.limit);
-  //       setOffset(data.offset);
   //       setTotal(data.total);
   //       setLoading(false);
   //     })
   //     .catch(() => setLoading(false));
   // }, [limit, offset, fromDate, toDate]);
+
+
 
   // Fetch when BOTH fromDate and toDate are set
   useEffect(() => {
@@ -891,7 +889,7 @@ export function ReportsList() {
                       onClick={() => setShowDateRange(true)}
                     >
                       <Calendar className="h-5 w-5 text-blue-500" />
-                      <span className="font-semibold text-sm">
+                      <span className="text-gray-600 dark:text-gray-300 text-sm font-normal">
                         {fromDate && toDate
                           ? `${formatDateDMY(fromDate)} - ${formatDateDMY(toDate)}`
                           : "Select date range"}
@@ -924,11 +922,11 @@ export function ReportsList() {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="rounded-full text-xs hover:bg-gray-100 dark:hover:bg-gray-800"
+                  className="rounded-full text-sm font-normal text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center"
                   onClick={clearAllFilters}
                 >
-                  <X className="h-3 w-3 mr-1" />
-                  Clear All
+                  <X className="h-4 w-4 mr-2 text-gray-600 dark:text-gray-300" />
+                  <span>Clear All</span>
                 </Button>
               </div>
             </div>
@@ -993,6 +991,9 @@ export function ReportsList() {
                           handleCommitFilter={handleCommitFilter}
                           columnSorts={columnSorts}
                           handleColumnSort={handleColumnSort}
+                          setInputValues={setInputValues}
+                          columnFilters={columnFilters}
+
                         />
                       </TableHead>
                       {/* <TableHead className="font-semibold min-w-[150px]">
