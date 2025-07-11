@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
+import { DateRangePicker } from "./date-range-picker";
+
 import {
   Card,
   CardContent,
@@ -61,7 +63,7 @@ import { serialize } from "next-mdx-remote/serialize";
 import { useReportStore } from "@/store/reportStore";
 import { useRouter } from "next/navigation";
 import { DateTime } from "luxon";
-import { DateRangePicker } from "./date-range-picker";
+
 import { BASE_URL } from "@/lib/constants";
 
 function convertUTCToLocalLuxon(utcTimeString: string) {
@@ -134,6 +136,7 @@ export function ReportsList() {
     direction: "desc",
   });
   const [isFilterVisible, setIsFilterVisible] = useState(false);
+  const [showDateRange, setShowDateRange] = useState(false);
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
@@ -509,7 +512,12 @@ export function ReportsList() {
       return 0;
     });
   }, [reports, sortConfig]);
-
+  // Format date from YYYY-MM-DD to DD/MM/YYYY
+  function formatDateDMY(dateStr: string) {
+    if (!dateStr) return "";
+    const [year, month, day] = dateStr.split("-");
+    return `${day}/${month}/${year}`;
+  }
   // Apply filters
   const filteredReports = useMemo(() => {
     return sortedReports.filter((report: any) => {
@@ -619,6 +627,15 @@ export function ReportsList() {
   // Change page
   const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
 
+  // Format for compact display
+  const compactLabel = fromDate && toDate
+    ? `${fromDate} – ${toDate}`
+    : fromDate
+      ? `${fromDate} –`
+      : toDate
+        ? `– ${toDate}`
+        : "";
+
   return (
     <div className="relative overflow-hidden">
       {/* Decorative blobs */}
@@ -647,39 +664,74 @@ export function ReportsList() {
               </motion.div>
 
               <div className="flex flex-col md:flex-row gap-2 w-full md:w-auto">
-                {/* <motion.div
-                  className="relative w-full md:w-64"
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.6, delay: 0.2 }}
-                >
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <Input
-                    placeholder="Global search..."
-                    className="pl-10 bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded-full focus:ring focus:ring-blue-200 dark:focus:ring-blue-900 transition-all duration-200"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                  />
-                </motion.div> */}
-
-                <motion.div
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.6, delay: 0.3 }}
-                >
-                  <div className="flex items-center gap-2">
-                    
-                    {/* Calendar icon button */}
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="rounded-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200"
-                      onClick={() => setIsFilterVisible(!isFilterVisible)}
+                <AnimatePresence mode="wait">
+                  {showDateRange ? (
+                    <motion.div
+                      key="date-range-picker"
+                      initial={{ opacity: 0, scale: 0.8, x: 20 }}
+                      animate={{ opacity: 1, scale: 1, x: 0 }}
+                      exit={{ opacity: 0, scale: 0.8, x: -20 }}
+                      transition={{ duration: 0.25 }}
                     >
-                      <Calendar className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </motion.div>
+                      <DateRangePicker
+                        fromDate={fromDate}
+                        toDate={toDate}
+                        onFromDateChange={setFromDate}
+                        onToDateChange={setToDate}
+                        onClear={() => {
+                          setFromDate("");
+                          setToDate("");
+                        }}
+                        onClose={() => setShowDateRange(false)}
+                      />
+                    </motion.div>
+                  ) : compactLabel ? (
+                    <motion.button
+                      key="date-range-label"
+                      type="button"
+                      className="flex items-center gap-2 px-3 py-1 rounded-full border text-xs bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700"
+                      initial={{ opacity: 0, scale: 0.8, x: 20 }}
+                      animate={{ opacity: 1, scale: 1, x: 0 }}
+                      exit={{ opacity: 0, scale: 0.8, x: -20 }}
+                      transition={{ duration: 0.25 }}
+                      onClick={() => setShowDateRange(true)}
+                    >
+                      <Calendar className="h-4 w-4 text-blue-500" />
+                      <span className="text-sm text-gray-900">
+                        {fromDate && formatDateDMY(fromDate)}
+                        {fromDate && toDate && (
+                          <span className="mx-1 text-gray-400">-</span>
+                        )}
+                        {toDate && formatDateDMY(toDate)}
+                      </span>
+                      <X
+                        className="h-3 w-3 ml-1 text-gray-400 hover:text-red-500 cursor-pointer"
+                        onClick={e => {
+                          e.stopPropagation();
+                          setFromDate("");
+                          setToDate("");
+                        }}
+                      />
+                    </motion.button>
+                  ) : (
+                    <motion.div
+                      key="calendar-icon"
+                      initial={{ opacity: 0, scale: 0.8, x: 20 }}
+                      animate={{ opacity: 1, scale: 1, x: 0 }}
+                      exit={{ opacity: 0, scale: 0.8, x: -20 }}
+                      transition={{ duration: 0.25 }}
+                    >
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="rounded-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200"
+                        onClick={() => setShowDateRange(true)}
+                      >
+                        <Calendar className="h-4 w-4" />
+                      </Button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
 
                 <Button
                   variant="outline"
