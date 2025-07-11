@@ -1,9 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { AnimatePresence, motion } from "framer-motion";
-import { DateRangePicker } from "./date-range-picker";
-import axios from "axios";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Card,
   CardContent,
@@ -63,7 +61,7 @@ import { serialize } from "next-mdx-remote/serialize";
 import { useReportStore } from "@/store/reportStore";
 import { useRouter } from "next/navigation";
 import { DateTime } from "luxon";
-
+import { DateRangePicker } from "./date-range-picker";
 import { BASE_URL } from "@/lib/constants";
 
 function convertUTCToLocalLuxon(utcTimeString: string) {
@@ -123,18 +121,24 @@ const ColumnHeader = ({
       ))}
   </div>
 );
-// Fetch reports with date range filter
 export async function fetchReportSearch({ call_date_from, call_date_to, limit = 20, offset = 0 }) {
-  const response = await axios.post(`${BASE_URL}/logs/search`, {
-    filters: {
-      call_date_from,
-      call_date_to,
+  const response = await fetch(`${BASE_URL}/logs/datefilter`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
     },
-    limit,
-    offset,
+    body: JSON.stringify({
+      filters: {
+        call_date_from,
+        call_date_to,
+      },
+      limit,
+      offset,
+    }),
   });
-  return response.data;
+  return response.json();
 }
+
 export function ReportsList() {
   const [searchQuery, setSearchQuery] = useState("");
   //const [reports, setReports] = useState([])
@@ -146,8 +150,8 @@ export function ReportsList() {
     key: "call_date",
     direction: "desc",
   });
-  const [isFilterVisible, setIsFilterVisible] = useState(false);
   const [showDateRange, setShowDateRange] = useState(false);
+  const [isFilterVisible, setIsFilterVisible] = useState(false);
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
@@ -209,6 +213,17 @@ export function ReportsList() {
   //   }
   // }
   // added pagination so that we can load reports in chunks
+
+
+  // Format for compact display
+  const compactLabel = fromDate && toDate
+    ? `${fromDate} – ${toDate}`
+    : fromDate
+      ? `${fromDate} –`
+      : toDate
+        ? `– ${toDate}`
+        : "";
+
   const fetchReports = async (page = 1) => {
     setLoading(true);
     try {
@@ -225,24 +240,44 @@ export function ReportsList() {
     }
   };
 
-  // useEffect(() => {
-  //   fetchReports()
-  // }, [])
-  useEffect(() => {
-    setLoading(true);
-    fetch(`${BASE_URL}/logs/all?limit=${limit}&offset=${offset}`)
-      .then((res) => res.json())
-      .then((data) => {
-        setReports(data.data);
-        setLimit(data.limit);
-        setOffset(data.offset);
-        setTotal(data.total);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
-  }, [limit, offset]);
+useEffect(() => {
+  // Only run if no date filter is set
+  if (fromDate || toDate) return;
 
+  setLoading(true);
+  fetch(`${BASE_URL}/logs/all?limit=${limit}&offset=${offset}`)
+    .then((res) => res.json())
+    .then((data) => {
+      setReports(data.data);
+      setTotal(data.total);
+      setLoading(false);
+    })
+    .catch(() => setLoading(false));
+}, [limit, offset, fromDate, toDate]);
+
+  // Default fetch for all reports (no date filter)
+  // useEffect(() => {
+  //   // Only run if no date filter is set
+  //   if (fromDate || toDate) return;
+
+  //   setLoading(true);
+  //   fetch(`${BASE_URL}/logs/all?limit=${limit}&offset=${offset}`)
+  //     .then((res) => res.json())
+  //     .then((data) => {
+  //       setReports(data.data);
+  //       setLimit(data.limit);
+  //       setOffset(data.offset);
+  //       setTotal(data.total);
+  //       setLoading(false);
+  //     })
+  //     .catch(() => setLoading(false));
+  // }, [limit, offset, fromDate, toDate]);
+
+  // Fetch when date filter is set
   useEffect(() => {
+    // Only run if a date filter is set
+    if (!fromDate && !toDate) return;
+
     setLoading(true);
     fetchReportSearch({
       call_date_from: fromDate,
@@ -251,14 +286,17 @@ export function ReportsList() {
       offset,
     })
       .then((data) => {
-        // Adjust this line based on your API response
         setReports(data.records || data.data || []);
         setTotal(data.total || 0);
+        setError("");
       })
-      .catch(() => setReports([]))
+      .catch(() => {
+        setReports([]);
+        setTotal(0);
+        setError("Failed to load reports.");
+      })
       .finally(() => setLoading(false));
   }, [fromDate, toDate, limit, offset]);
-
 
   // Update the isDateInRange function:
   const isDateInRange = (callDate: string) => {
@@ -541,7 +579,7 @@ export function ReportsList() {
       return 0;
     });
   }, [reports, sortConfig]);
-  // Format date from YYYY-MM-DD to DD/MM/YYYY
+  // Format date from YYYY-MM-DD to DD/MM/YYYY 
   function formatDateDMY(dateStr: string) {
     if (!dateStr) return "";
     const [year, month, day] = dateStr.split("-");
@@ -553,10 +591,10 @@ export function ReportsList() {
       // Global search filter
       // const matchesGlobalSearch =
       //   report.caller_name?.toLowerCase().includes(searchQuery.toLowerCase())
-      // const matchesGlobalSearch =
-      //   !searchQuery ||
-      //   (report.caller_name &&
-      //     report.caller_name.toLowerCase().includes(searchQuery.toLowerCase()));
+      const matchesGlobalSearch =
+        !searchQuery ||
+        (report.caller_name &&
+          report.caller_name.toLowerCase().includes(searchQuery.toLowerCase()));
       // Individual column filters
       const matchesDateFilter =
         !columnFilters.call_date ||
@@ -611,7 +649,7 @@ export function ReportsList() {
       const matchesDateRange = isDateInRange(report.call_date);
 
       return (
-        // matchesGlobalSearch &&
+        matchesGlobalSearch &&
         matchesDateFilter &&
         matchesCallerName &&
         matchesTollFreeDid &&
@@ -656,15 +694,6 @@ export function ReportsList() {
   // Change page
   const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
 
-  // Format for compact display
-  const compactLabel = fromDate && toDate
-    ? `${fromDate} – ${toDate}`
-    : fromDate
-      ? `${fromDate} –`
-      : toDate
-        ? `– ${toDate}`
-        : "";
-
   return (
     <div className="relative overflow-hidden">
       {/* Decorative blobs */}
@@ -691,7 +720,6 @@ export function ReportsList() {
                   A list of all your generated reports
                 </CardDescription>
               </motion.div>
-
               <div className="flex flex-col md:flex-row gap-2 w-full md:w-auto">
                 <AnimatePresence mode="wait">
                   {showDateRange ? (
