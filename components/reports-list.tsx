@@ -111,34 +111,46 @@ const ColumnHeader = ({
       (label.toLowerCase().includes("date") ? (
         <Input
           type="date"
-          value={inputValues.call_date || ""}
-          onChange={(e)=>{
+          value={columnFilters[column]}
+          onChange={(e) => {
             handleInputChange(column)
             handleCommitFilter(column, e.currentTarget.value)
             setInputValues(prev => ({
               ...prev,
               call_date: columnFilters.call_date || "",
             }));
-
+            console.log(inputValues.call_date);
 
           }}
           onKeyDown={e => {
             console.log(inputValues);
           }}
-          onBlur={e => handleCommitFilter(column, e.target.value)}
+         // onBlur={e => handleCommitFilter(column, e.target.value)}
           // onKeyDown={e => {
           //   if (e.key === e.key) handleCommitFilter(column, e.currentTarget.value);
           // }}
           className="h-7 text-xs bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600"
         />
       ) : (
+        // <Input
+        //   placeholder={`Filter ${label.toLowerCase()}...`}
+        //   value={inputValues[column] || ""}
+        //   onChange={handleInputChange(column)}
+        //   onBlur={e => handleCommitFilter(column, e.target.value)}
+        //   onKeyDown={e => {
+        //     if (e.key === "Enter") handleCommitFilter(column, e.currentTarget.value);
+        //   }}
+        //   className="h-7 text-xs bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600"
+        // />
         <Input
+          type="text"
           placeholder={`Filter ${label.toLowerCase()}...`}
           value={inputValues[column] || ""}
           onChange={handleInputChange(column)}
-          onBlur={e => handleCommitFilter(column, e.target.value)}
           onKeyDown={e => {
-            if (e.key === "Enter") handleCommitFilter(column, e.currentTarget.value);
+            if (e.key === "Enter") {
+              handleCommitFilter(column, e.currentTarget.value); // Only triggers API on Enter
+            }
           }}
           className="h-7 text-xs bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600"
         />
