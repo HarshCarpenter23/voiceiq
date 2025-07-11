@@ -71,16 +71,16 @@ function convertUTCToLocalLuxon(utcTimeString: string) {
     .setZone(userTimeZone)
     .toFormat("yyyy-LL-dd HH:mm:ss");
 }
-
 const ColumnHeader = ({
   column,
   icon,
   label,
   showSearch = true,
-  columnFilters,
   columnSorts,
-  handleColumnFilterChange,
   handleColumnSort,
+  inputValues,
+  handleInputChange,
+  handleCommitFilter,
 }: any) => (
   <div className="space-y-2">
     <div className="flex items-center justify-between">
@@ -107,20 +107,29 @@ const ColumnHeader = ({
       (label.toLowerCase().includes("date") ? (
         <Input
           type="date"
-          value={columnFilters[column] || ""}
-          onChange={(e) => handleColumnFilterChange(column, e.target.value)}
+          value={inputValues[column] || ""}
+          onChange={handleInputChange(column)}
+          onBlur={e => handleCommitFilter(column, e.target.value)}
+          onKeyDown={e => {
+            if (e.key === "Enter") handleCommitFilter(column, e.currentTarget.value);
+          }}
           className="h-7 text-xs bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600"
         />
       ) : (
         <Input
           placeholder={`Filter ${label.toLowerCase()}...`}
-          value={columnFilters[column] || ""}
-          onChange={(e) => handleColumnFilterChange(column, e.target.value)}
+          value={inputValues[column] || ""}
+          onChange={handleInputChange(column)}
+          onBlur={e => handleCommitFilter(column, e.target.value)}
+          onKeyDown={e => {
+            if (e.key === "Enter") handleCommitFilter(column, e.currentTarget.value);
+          }}
           className="h-7 text-xs bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600"
         />
       ))}
   </div>
 );
+
 export async function fetchReportSearch({ call_date_from, call_date_to, limit = 20, offset = 0 }) {
   const response = await fetch(`${BASE_URL}/logs/datefilter`, {
     method: "POST",
@@ -210,6 +219,14 @@ export function ReportsList() {
     customer_number: "",
     toll_free_did: "",
   });
+  const [inputValues, setInputValues] = useState({
+    call_date: "",
+    call_type: "",
+    caller_name: "",
+    filename: "",
+    customer_number: "",
+    toll_free_did: "",
+  });
 
   const router = useRouter();
   const { setSelectedReport } = useReportStore();
@@ -283,7 +300,7 @@ export function ReportsList() {
       .catch(() => setLoading(false));
   }, [limit, offset, fromDate, toDate]);
 
-  
+
 
   // Default fetch for all reports (no date filter)
   // useEffect(() => {
@@ -416,16 +433,16 @@ export function ReportsList() {
   // };
 
   const clearAllFilters = () => {
-  setColumnFilters({
-    call_date: "",
-    call_type: "",
-    caller_name: "",
-    filename: "",
-    customer_number: "",
-    toll_free_did: "",
-  });
-  setOffset(0); // (if you want to reset pagination)
-};
+    setColumnFilters({
+      call_date: "",
+      call_type: "",
+      caller_name: "",
+      filename: "",
+      customer_number: "",
+      toll_free_did: "",
+    });
+    setOffset(0); // (if you want to reset pagination)
+  };
 
   // Parse markdown using MDX serializer
   const parseMarkdownWithMDX = async (markdown: any) => {
@@ -611,6 +628,24 @@ export function ReportsList() {
     )}.pdf`;
     doc.save(fileName);
   };
+  // 3. Handle input change (instant typing)
+  const handleInputChange = (column: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    setInputValues((prev) => ({ ...prev, [column]: e.target.value }));
+  };
+
+  // 4. Commit filter on blur or Enter
+  const handleCommitFilter = (column: string, value: string) => {
+    setColumnFilters((prev) => ({ ...prev, [column]: value }));
+    // API will be triggered by useEffect watching columnFilters
+  };
+
+  // 5. Example: useEffect to trigger API/search when filters change
+  useEffect(() => {
+    // Here you would call your API with the latest filters
+    // Example:
+    // fetchReports(columnFilters);
+    console.log("Trigger API/search with filters:", columnFilters);
+  }, [columnFilters]);
 
   // Apply sorting
   const sortedReports = useMemo(() => {
@@ -913,7 +948,7 @@ export function ReportsList() {
                   <TableHeader>
                     <TableRow className="bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-50 dark:hover:bg-gray-800/50">
                       <TableHead className="font-semibold min-w-[200px] p-2">
-                        <ColumnHeader
+                        {/* <ColumnHeader
                           column="call_date"
                           icon={<Phone className="h-4 w-4" />}
                           label="Call Date"
@@ -921,9 +956,19 @@ export function ReportsList() {
                           columnSorts={columnSorts}
                           handleColumnFilterChange={handleColumnFilterChange}
                           handleColumnSort={handleColumnSort}
+                        /> */}
+                        <ColumnHeader
+                          column="call_date"
+                          icon={<Phone className="h-4 w-4" />}
+                          label="Call Date"
+                          inputValues={inputValues}
+                          handleInputChange={handleInputChange}
+                          handleCommitFilter={handleCommitFilter}
+                          columnSorts={columnSorts}
+                          handleColumnSort={handleColumnSort}
                         />
                       </TableHead>
-                      <TableHead className="font-semibold min-w-[150px]">
+                      {/* <TableHead className="font-semibold min-w-[150px]">
                         <ColumnHeader
                           column="call_type"
                           icon={<ArrowRightLeft className="h-4 w-4" />}
@@ -933,15 +978,27 @@ export function ReportsList() {
                           handleColumnFilterChange={handleColumnFilterChange}
                           handleColumnSort={handleColumnSort}
                         />
-                      </TableHead>
-                      <TableHead className="font-semibold min-w-[180px]">
+                      </TableHead> */}
+                      <TableHead className="font-semibold min-w-[150px]">
+                      <ColumnHeader
+                        column="call_type"
+                        icon={<Phone className="h-4 w-4" />}
+                        label="Call Type"
+                        inputValues={inputValues}
+                        handleInputChange={handleInputChange}
+                        handleCommitFilter={handleCommitFilter}
+                        columnSorts={columnSorts}
+                        handleColumnSort={handleColumnSort}
+                      /></TableHead>
+                      {/* <TableHead className="font-semibold min-w-[180px]">
                         <ColumnHeader
                           column="caller_name"
                           icon={<UserRound className="h-4 w-4" />}
                           label="Caller Name"
-                          columnFilters={columnFilters}
+                          inputValues={inputValues}
+                          handleInputChange={handleInputChange}
+                          handleCommitFilter={handleCommitFilter}
                           columnSorts={columnSorts}
-                          handleColumnFilterChange={handleColumnFilterChange}
                           handleColumnSort={handleColumnSort}
                         />
                       </TableHead>
@@ -964,6 +1021,42 @@ export function ReportsList() {
                           columnFilters={columnFilters}
                           columnSorts={columnSorts}
                           handleColumnFilterChange={handleColumnFilterChange}
+                          handleColumnSort={handleColumnSort}
+                        />
+                      </TableHead> */}
+                      <TableHead className="font-semibold min-w-[180px]">
+                        <ColumnHeader
+                          column="caller_name"
+                          icon={<UserRound className="h-4 w-4" />}
+                          label="Caller Name"
+                          inputValues={inputValues}
+                          handleInputChange={handleInputChange}
+                          handleCommitFilter={handleCommitFilter}
+                          columnSorts={columnSorts}
+                          handleColumnSort={handleColumnSort}
+                        />
+                      </TableHead>
+                      <TableHead className="font-semibold min-w-[150px]">
+                        <ColumnHeader
+                          column="toll_free_did"
+                          icon={<Headset className="h-4 w-4" />}
+                          label="Toll Free/DID"
+                          inputValues={inputValues}
+                          handleInputChange={handleInputChange}
+                          handleCommitFilter={handleCommitFilter}
+                          columnSorts={columnSorts}
+                          handleColumnSort={handleColumnSort}
+                        />
+                      </TableHead>
+                      <TableHead className="font-semibold min-w-[170px]">
+                        <ColumnHeader
+                          column="customer_number"
+                          icon={<Phone className="h-4 w-4" />}
+                          label="Customer Number"
+                          inputValues={inputValues}
+                          handleInputChange={handleInputChange}
+                          handleCommitFilter={handleCommitFilter}
+                          columnSorts={columnSorts}
                           handleColumnSort={handleColumnSort}
                         />
                       </TableHead>
