@@ -283,6 +283,8 @@ export function ReportsList() {
       .catch(() => setLoading(false));
   }, [limit, offset, fromDate, toDate]);
 
+  
+
   // Default fetch for all reports (no date filter)
   // useEffect(() => {
   //   // Only run if no date filter is set
@@ -314,6 +316,7 @@ export function ReportsList() {
       offset,
     })
       .then((data) => {
+        console.log("API response:", data);
         setReports(data.records || data.data || []);
         setTotal(data.total || 0);
         setError("");
@@ -421,9 +424,7 @@ export function ReportsList() {
     customer_number: "",
     toll_free_did: "",
   });
-  setFromDate(""); 
-  setToDate("");  
-  setOffset(0); 
+  setOffset(0); // (if you want to reset pagination)
 };
 
   // Parse markdown using MDX serializer
@@ -1014,7 +1015,7 @@ export function ReportsList() {
                           </div>
                         </TableCell>
                       </TableRow>
-                    ) : currentReports.length === 0 ? (
+                    ) : reports.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={8} className="h-32 text-center">
                           <div className="flex flex-col items-center justify-center">
@@ -1035,7 +1036,7 @@ export function ReportsList() {
                         </TableCell>
                       </TableRow>
                     ) : (
-                      currentReports.map((report: any, index) => {
+                      reports.map((report: any, index) => {
                         // const sentimentColor = getSentimentColor(report.caller_sentiment)
 
                         return (
