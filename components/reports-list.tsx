@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { DateRangePicker } from "./date-range-picker";
-
+import axios from "axios";
 import {
   Card,
   CardContent,
@@ -123,7 +123,18 @@ const ColumnHeader = ({
       ))}
   </div>
 );
-
+// Fetch reports with date range filter
+export async function fetchReportSearch({ call_date_from, call_date_to, limit = 20, offset = 0 }) {
+  const response = await axios.post(`${BASE_URL}/logs/search`, {
+    filters: {
+      call_date_from,
+      call_date_to,
+    },
+    limit,
+    offset,
+  });
+  return response.data;
+}
 export function ReportsList() {
   const [searchQuery, setSearchQuery] = useState("");
   //const [reports, setReports] = useState([])
@@ -230,6 +241,24 @@ export function ReportsList() {
       })
       .catch(() => setLoading(false));
   }, [limit, offset]);
+
+  useEffect(() => {
+    setLoading(true);
+    fetchReportSearch({
+      call_date_from: fromDate,
+      call_date_to: toDate,
+      limit,
+      offset,
+    })
+      .then((data) => {
+        // Adjust this line based on your API response
+        setReports(data.records || data.data || []);
+        setTotal(data.total || 0);
+      })
+      .catch(() => setReports([]))
+      .finally(() => setLoading(false));
+  }, [fromDate, toDate, limit, offset]);
+
 
   // Update the isDateInRange function:
   const isDateInRange = (callDate: string) => {
