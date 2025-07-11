@@ -53,6 +53,7 @@ import {
   PhoneOutgoing,
   Delete,
   FileX,
+  Calendar
 } from "lucide-react";
 import { jsPDF } from "jspdf";
 import "jspdf-autotable";
@@ -515,10 +516,10 @@ export function ReportsList() {
       // Global search filter
       // const matchesGlobalSearch =
       //   report.caller_name?.toLowerCase().includes(searchQuery.toLowerCase())
-      const matchesGlobalSearch =
-        !searchQuery ||
-        (report.caller_name &&
-          report.caller_name.toLowerCase().includes(searchQuery.toLowerCase()));
+      // const matchesGlobalSearch =
+      //   !searchQuery ||
+      //   (report.caller_name &&
+      //     report.caller_name.toLowerCase().includes(searchQuery.toLowerCase()));
       // Individual column filters
       const matchesDateFilter =
         !columnFilters.call_date ||
@@ -573,7 +574,7 @@ export function ReportsList() {
       const matchesDateRange = isDateInRange(report.call_date);
 
       return (
-        matchesGlobalSearch &&
+        // matchesGlobalSearch &&
         matchesDateFilter &&
         matchesCallerName &&
         matchesTollFreeDid &&
@@ -646,7 +647,7 @@ export function ReportsList() {
               </motion.div>
 
               <div className="flex flex-col md:flex-row gap-2 w-full md:w-auto">
-                <motion.div
+                {/* <motion.div
                   className="relative w-full md:w-64"
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
@@ -659,21 +660,25 @@ export function ReportsList() {
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
-                </motion.div>
+                </motion.div> */}
 
                 <motion.div
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.6, delay: 0.3 }}
                 >
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="rounded-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200"
-                    onClick={() => setIsFilterVisible(!isFilterVisible)}
-                  >
-                    <Filter className="h-4 w-4" />
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    
+                    {/* Calendar icon button */}
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="rounded-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200"
+                      onClick={() => setIsFilterVisible(!isFilterVisible)}
+                    >
+                      <Calendar className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </motion.div>
 
                 <Button
@@ -839,10 +844,10 @@ export function ReportsList() {
                             {(fromDate ||
                               toDate ||
                               Object.values(columnFilters).some((f) => f)) && (
-                              <p className="text-xs text-gray-400 mt-1">
-                                Try adjusting your filters
-                              </p>
-                            )}
+                                <p className="text-xs text-gray-400 mt-1">
+                                  Try adjusting your filters
+                                </p>
+                              )}
                           </div>
                         </TableCell>
                       </TableRow>
@@ -889,7 +894,7 @@ export function ReportsList() {
                             </TableCell> */}
                             <TableCell>
                               {report.caller_name &&
-                              report.caller_name !== "null" ? (
+                                report.caller_name !== "null" ? (
                                 <Button
                                   variant="ghost"
                                   className="px-0 font-medium text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors duration-200 text-[1.1rem]"
@@ -973,7 +978,7 @@ export function ReportsList() {
                                       size="icon"
                                       className="h-8 w-8 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200"
                                       title="Delete Report"
-                                      // disabled={isDeleting || report.status === "processing"}
+                                    // disabled={isDeleting || report.status === "processing"}
                                     >
                                       <FileX
                                         color="red"
