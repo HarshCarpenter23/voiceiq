@@ -240,20 +240,20 @@ export function ReportsList() {
     }
   };
 
-useEffect(() => {
-  // Only run if no date filter is set
-  if (fromDate || toDate) return;
+  useEffect(() => {
+    // Only run if no date filter is set
+    if (fromDate || toDate) return;
 
-  setLoading(true);
-  fetch(`${BASE_URL}/logs/all?limit=${limit}&offset=${offset}`)
-    .then((res) => res.json())
-    .then((data) => {
-      setReports(data.data);
-      setTotal(data.total);
-      setLoading(false);
-    })
-    .catch(() => setLoading(false));
-}, [limit, offset, fromDate, toDate]);
+    setLoading(true);
+    fetch(`${BASE_URL}/logs/all?limit=${limit}&offset=${offset}`)
+      .then((res) => res.json())
+      .then((data) => {
+        setReports(data.data);
+        setTotal(data.total);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, [limit, offset, fromDate, toDate]);
 
   // Default fetch for all reports (no date filter)
   // useEffect(() => {
@@ -273,10 +273,10 @@ useEffect(() => {
   //     .catch(() => setLoading(false));
   // }, [limit, offset, fromDate, toDate]);
 
-  // Fetch when date filter is set
+  // Fetch when BOTH fromDate and toDate are set
   useEffect(() => {
-    // Only run if a date filter is set
-    if (!fromDate && !toDate) return;
+    // Only run if BOTH dates are set
+    if (!fromDate || !toDate) return;
 
     setLoading(true);
     fetchReportSearch({
@@ -380,6 +380,7 @@ useEffect(() => {
     setFromDate("");
     setToDate("");
     setCurrentPage(1);
+    setOffset(0);
   };
 
   // Parse markdown using MDX serializer
