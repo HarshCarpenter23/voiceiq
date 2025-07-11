@@ -879,7 +879,26 @@ export function ReportsList() {
               </motion.div>
               <div className="flex flex-col md:flex-row gap-2 w-full md:w-auto">
                 <AnimatePresence mode="wait">
-                  {showDateRange ? (
+                  {!showDateRange && (
+                    <motion.button
+                      key="date-range-label"
+                      type="button"
+                      className="flex items-center gap-2 px-4 py-2 rounded-full border bg-white dark:bg-[#111827] text-black dark:text-white font-semibold"
+                      initial={{ opacity: 0, scale: 0.8, x: 20 }}
+                      animate={{ opacity: 1, scale: 1, x: 0 }}
+                      exit={{ opacity: 0, scale: 0.8, x: -20 }}
+                      transition={{ duration: 0.25 }}
+                      onClick={() => setShowDateRange(true)}
+                    >
+                      <Calendar className="h-5 w-5 text-blue-500" />
+                      <span className="font-semibold text-sm">
+                        {fromDate && toDate
+                          ? `${formatDateDMY(fromDate)} - ${formatDateDMY(toDate)}`
+                          : "Select date range"}
+                      </span>
+                    </motion.button>
+                  )}
+                  {showDateRange && (
                     <motion.div
                       key="date-range-picker"
                       initial={{ opacity: 0, scale: 0.8, x: 20 }}
@@ -898,51 +917,6 @@ export function ReportsList() {
                         }}
                         onClose={() => setShowDateRange(false)}
                       />
-                    </motion.div>
-                  ) : compactLabel ? (
-                    <motion.button
-                      key="date-range-label"
-                      type="button"
-                      className="flex items-center gap-2 px-3 py-1 rounded-full border text-xs bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700"
-                      initial={{ opacity: 0, scale: 0.8, x: 20 }}
-                      animate={{ opacity: 1, scale: 1, x: 0 }}
-                      exit={{ opacity: 0, scale: 0.8, x: -20 }}
-                      transition={{ duration: 0.25 }}
-                      onClick={() => setShowDateRange(true)}
-                    >
-                      <Calendar className="h-4 w-4 text-blue-500" />
-                      <span className="text-sm text-gray-900">
-                        {fromDate && formatDateDMY(fromDate)}
-                        {fromDate && toDate && (
-                          <span className="mx-1 text-gray-400">-</span>
-                        )}
-                        {toDate && formatDateDMY(toDate)}
-                      </span>
-                      {/* <X
-                        className="h-3 w-3 ml-1 text-gray-400 hover:text-red-500 cursor-pointer"
-                        onClick={e => {
-                          e.stopPropagation();
-                          setFromDate("");
-                          setToDate("");
-                        }}
-                      /> */}
-                    </motion.button>
-                  ) : (
-                    <motion.div
-                      key="calendar-icon"
-                      initial={{ opacity: 0, scale: 0.8, x: 20 }}
-                      animate={{ opacity: 1, scale: 1, x: 0 }}
-                      exit={{ opacity: 0, scale: 0.8, x: -20 }}
-                      transition={{ duration: 0.25 }}
-                    >
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="rounded-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200"
-                        onClick={() => setShowDateRange(true)}
-                      >
-                        <Calendar className="h-4 w-4" />
-                      </Button>
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -969,27 +943,25 @@ export function ReportsList() {
                   transition={{ duration: 0.3 }}
                   className="overflow-hidden"
                 >
-                  <div className="pt-4 space-y-4">
-                    <div>
-                      <p className="text-sm font-medium mb-3 text-gray-500">
-                        Date Range Filter
-                      </p>
-                      <DateRangePicker
-                        fromDate={fromDate}
-                        toDate={toDate}
-                        onFromDateChange={setFromDate}
-                        onToDateChange={setToDate}
-                        onClear={clearDateFilters}
-                      />
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="mt-3 rounded-full text-xs hover:bg-gray-100 dark:hover:bg-gray-800"
-                        onClick={clearDateFilters}
-                      >
-                        Clear Filter
-                      </Button>
-                    </div>
+                  <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4 shadow">
+                    <p className="text-sm font-medium mb-3 text-gray-500 dark:text-gray-300">
+                      Date Range Filter
+                    </p>
+                    <DateRangePicker
+                      fromDate={fromDate}
+                      toDate={toDate}
+                      onFromDateChange={setFromDate}
+                      onToDateChange={setToDate}
+                      onClear={clearDateFilters}
+                    />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="mt-3 rounded-full text-xs text-gray-700 dark:text-gray-200 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700"
+                      onClick={clearDateFilters}
+                    >
+                      Clear Filter
+                    </Button>
                   </div>
                 </motion.div>
               )}
@@ -1252,11 +1224,11 @@ export function ReportsList() {
                             </TableCell>
                             <TableCell>
                               {report.status === "processing" ? (
-                                <span className="px-2 py-1 rounded bg-yellow-100 text-yellow-800 text-xs">
+                                <span className="px-2 py-1 rounded bg-yellow-100 text-black text-xs">
                                   Processing
                                 </span>
                               ) : (
-                                <span className="px-2 py-1 rounded bg-green-100 text-green-800 text-xs capitalize">
+                                <span className="px-2 py-1 rounded bg-green-500 text-black text-xs capitalize">
                                   {report.status}
                                 </span>
                               )}
