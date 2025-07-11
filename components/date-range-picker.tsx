@@ -41,9 +41,9 @@ export function DateRangePicker({
   // }, [fromDate, toDate]);
 
   // Call onClose when popover closes
-  useEffect(() => {
-    if (!isOpen && onClose) onClose();
-  }, [isOpen, onClose]);
+  // useEffect(() => {
+  //   if (!isOpen && onClose) onClose();
+  // }, [isOpen, onClose]);
 
   const formatDisplayDate = (dateString: string) => {
     if (!dateString || !mounted) return null
@@ -157,7 +157,7 @@ export function DateRangePicker({
           className="flex items-center gap-2 px-3 py-1 rounded-full text-xs h-8"
         >
           <Calendar className="h-4 w-4 text-blue-500" />
-          <span className={fromDate || toDate ? "text-gray-900" : "text-gray-400"}>
+          <span className={fromDate || toDate ? "text-black" : "text-black"}>
             {compactLabel}
           </span>
           {(fromDate || toDate) && (
