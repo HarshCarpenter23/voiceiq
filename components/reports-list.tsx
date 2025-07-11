@@ -139,6 +139,25 @@ export async function fetchReportSearch({ call_date_from, call_date_to, limit = 
   return response.json();
 }
 
+export async function fetchReportSearching({
+  filters = {},
+  sort = { column: "created_at", direction: "desc" },
+  limit = 20,
+  offset = 0,
+}) {
+  const response = await fetch(`${BASE_URL}/logs/searching`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      filters,
+      sort,
+      limit,
+      offset,
+    }),
+  });
+  return response.json();
+}
+
 export function ReportsList() {
   const [searchQuery, setSearchQuery] = useState("");
   //const [reports, setReports] = useState([])
@@ -161,26 +180,35 @@ export function ReportsList() {
   const [total, setTotal] = useState(0);
   const [reports, setReports] = useState<any[]>([]);
 
-  // Individual column filters
+  // Individual column filters old 
+  // const [columnFilters, setColumnFilters] = useState({
+  //   call_date: "",
+  //   caller_name: "",
+  //   request_type: "",
+  //   toll_free_did: "",
+  //   customer_number: "",
+  //   call_type: "",
+  //   // caller_sentiment: "",
+  // });
+
+  // // Individual column filters for new pagination
   const [columnFilters, setColumnFilters] = useState({
     call_date: "",
-    caller_name: "",
-    request_type: "",
-    toll_free_did: "",
-    customer_number: "",
     call_type: "",
-    // caller_sentiment: "",
-  });
+    caller_name: "",
+    filename: "",
+    customer_number: "",
+    toll_free_did: "",
 
+  });
   // Individual column sort states
   const [columnSorts, setColumnSorts] = useState({
-    call_date: "desc",
-    caller_name: null,
-    request_type: null,
-    toll_free_did: null,
-    customer_number: null,
+    call_date: "",
     call_type: "",
-    // caller_sentiment: null,
+    caller_name: "",
+    filename: "",
+    customer_number: "",
+    toll_free_did: "",
   });
 
   const router = useRouter();
@@ -366,22 +394,37 @@ export function ReportsList() {
   };
 
   // Clear all filters
+  // const clearAllFilters = () => {
+  //   setColumnFilters({
+  //     call_date: "",
+  //     caller_name: "",
+  //     request_type: "",
+  //     toll_free_did: "",
+  //     customer_number: "",
+  //     call_type: "",
+  //     filename: ""
+  //     // caller_sentiment: "",
+  //   });
+  //   setSearchQuery("");
+  //   setFromDate("");
+  //   setToDate("");
+  //   setCurrentPage(1);
+  //   setOffset(0);
+  // };
+
   const clearAllFilters = () => {
-    setColumnFilters({
-      call_date: "",
-      caller_name: "",
-      request_type: "",
-      toll_free_did: "",
-      customer_number: "",
-      call_type: "",
-      // caller_sentiment: "",
-    });
-    setSearchQuery("");
-    setFromDate("");
-    setToDate("");
-    setCurrentPage(1);
-    setOffset(0);
-  };
+  setColumnFilters({
+    call_date: "",
+    call_type: "",
+    caller_name: "",
+    filename: "",
+    customer_number: "",
+    toll_free_did: "",
+  });
+  setFromDate(""); 
+  setToDate("");  
+  setOffset(0); 
+};
 
   // Parse markdown using MDX serializer
   const parseMarkdownWithMDX = async (markdown: any) => {
@@ -694,6 +737,36 @@ export function ReportsList() {
 
   // Change page
   const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
+
+  const filters = Object.fromEntries(
+    Object.entries(columnFilters).filter(([_, v]) => v)
+  );
+
+  const sortColumn = Object.keys(columnSorts).find((col) => columnSorts[col]);
+  const sort = sortColumn
+    ? { column: sortColumn, direction: columnSorts[sortColumn] }
+    : { column: "created_at", direction: "desc" };
+
+  useEffect(() => {
+    setLoading(true);
+    fetchReportSearching({
+      filters,
+      sort,
+      limit,
+      offset,
+    })
+      .then((data) => {
+        setReports(data.data || []);
+        setTotal(data.total || 0);
+        setError("");
+      })
+      .catch(() => {
+        setReports([]);
+        setTotal(0);
+        setError("Failed to load reports.");
+      })
+      .finally(() => setLoading(false));
+  }, [columnFilters, columnSorts, limit, offset]);
 
   return (
     <div className="relative overflow-hidden">
