@@ -125,7 +125,7 @@ const ColumnHeader = ({
           onKeyDown={e => {
             console.log(inputValues);
           }}
-         // onBlur={e => handleCommitFilter(column, e.target.value)}
+          // onBlur={e => handleCommitFilter(column, e.target.value)}
           // onKeyDown={e => {
           //   if (e.key === e.key) handleCommitFilter(column, e.currentTarget.value);
           // }}
@@ -396,7 +396,6 @@ export function ReportsList() {
     setCurrentPage(1);
   };
 
-  // Handle column sort
   const handleColumnSort = (column: string) => {
     const currentSort = columnSorts[column];
     let newSort = "asc";
@@ -404,7 +403,7 @@ export function ReportsList() {
     if (currentSort === "asc") {
       newSort = "desc";
     } else if (currentSort === "desc") {
-      newSort = "";
+      newSort = ""; // No sort
     }
 
     // Reset all other column sorts
@@ -415,11 +414,49 @@ export function ReportsList() {
 
     setColumnSorts(resetSorts);
 
-    // Update main sort config
+    // Update main sort config and trigger API only if sorting is active
     if (newSort) {
       setSortConfig({ key: column, direction: newSort });
+
+      // Only trigger API for sorting, not for clearing sort
+      fetchReportSearching({
+        filters: columnFilters,
+        sort: { column, direction: newSort },
+        limit,
+        offset,
+      })
+        .then((data) => {
+          setReports(data.data || []);
+          setTotal(data.total || 0);
+          setError("");
+        })
+        .catch(() => {
+          setReports([]);
+          setTotal(0);
+          setError("Failed to load reports.");
+        })
+        .finally(() => setLoading(false));
     } else {
       setSortConfig({ key: "created_at", direction: "desc" });
+
+      // Optionally, fetch default sort
+      fetchReportSearching({
+        filters: columnFilters,
+        sort: { column: "created_at", direction: "desc" },
+        limit,
+        offset,
+      })
+        .then((data) => {
+          setReports(data.data || []);
+          setTotal(data.total || 0);
+          setError("");
+        })
+        .catch(() => {
+          setReports([]);
+          setTotal(0);
+          setError("Failed to load reports.");
+        })
+        .finally(() => setLoading(false));
     }
   };
 
