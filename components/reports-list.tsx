@@ -92,20 +92,6 @@ const ColumnHeader = ({
         {icon}
         <span>{label}</span>
       </div>
-      {/* <Button
-        variant="ghost"
-        size="icon"
-        className="h-4 w-4 p-0 hover:bg-gray-200 dark:hover:bg-gray-700"
-        onClick={() => handleColumnSort(column)}
-      >
-        {columnSorts[column] === "asc" ? (
-          <ArrowUp className="h-3 w-3" />
-        ) : columnSorts[column] === "desc" ? (
-          <ArrowDown className="h-3 w-3" />
-        ) : (
-          <ArrowUpDown className="h-3 w-3" />
-        )}
-      </Button> */}
     </div>
     {showSearch &&
       (label.toLowerCase().includes("date") ? (
@@ -125,23 +111,9 @@ const ColumnHeader = ({
           onKeyDown={e => {
             console.log(inputValues);
           }}
-          // onBlur={e => handleCommitFilter(column, e.target.value)}
-          // onKeyDown={e => {
-          //   if (e.key === e.key) handleCommitFilter(column, e.currentTarget.value);
-          // }}
           className="h-7 text-xs bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600"
         />
       ) : (
-        // <Input
-        //   placeholder={`Filter ${label.toLowerCase()}...`}
-        //   value={inputValues[column] || ""}
-        //   onChange={handleInputChange(column)}
-        //   onBlur={e => handleCommitFilter(column, e.target.value)}
-        //   onKeyDown={e => {
-        //     if (e.key === "Enter") handleCommitFilter(column, e.currentTarget.value);
-        //   }}
-        //   className="h-7 text-xs bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600"
-        // />
         <Input
           type="text"
           placeholder={`Filter ${label.toLowerCase()}...`}
@@ -266,28 +238,6 @@ export function ReportsList() {
     ></div>
   );
 
-  // const fetchReports = async () => {
-  //   setLoading(true)
-  //   try {
-  //     const res = await fetch("http://127.0.0.1:8000/logs/all", {
-  //       method: "GET",
-  //       headers: {
-  //         "Content-Type": "application/json",
-  //       },
-  //     })
-  //     const data = await res.json()
-  //     console.log("✅ Data received:", data)
-  //     setReports(data.data || [])
-  //   } catch (err) {
-  //     console.error("❌ Failed to fetch reports:", err)
-  //     setError("Failed to load reports.")
-  //   } finally {
-  //     setLoading(false)
-  //   }
-  // }
-  // added pagination so that we can load reports in chunks
-
-
   // Format for compact display
   const compactLabel = fromDate && toDate
     ? `${fromDate} – ${toDate}`
@@ -296,64 +246,6 @@ export function ReportsList() {
       : toDate
         ? `– ${toDate}`
         : "";
-
-  // const fetchReports = async (page = 1) => {
-  //   setLoading(true);
-  //   try {
-  //     const offset = (page - 1) * reportsPerPage;
-  //     const res = await fetch(
-  //       `${BASE_URL}/logs/all?limit=${reportsPerPage}&offset=${offset}`
-  //     );
-  //     const data = await res.json();
-  //     setReports(data.data || []);
-  //   } catch (err) {
-  //     setError("Failed to load reports.");
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
-
-  // useEffect(() => {
-  //   // Only run if no date filter is set
-  //   if (fromDate || toDate) return;
-
-  //   setLoading(true);
-  //   fetch(`${BASE_URL}/logs/all?limit=${limit}&offset=${offset}`)
-  //     .then((res) => res.json())
-  //     .then((data) => {
-  //       setReports(data.data);
-  //       setTotal(data.total);
-  //       setLoading(false);
-  //     })
-  //     .catch(() => setLoading(false));
-  // }, [limit, offset, fromDate, toDate]);
-
-
-
-  // Fetch when BOTH fromDate and toDate are set
-  // useEffect(() => {
-  //   // Only run if BOTH dates are set
-  //   if (!fromDate || !toDate) return;
-
-  //   setLoading(true);
-  //   fetchDateFilter({
-  //     call_date_from: fromDate,
-  //     call_date_to: toDate,
-  //     limit,
-  //     offset,
-  //   })
-  //     .then((data) => {
-  //       setReports(data.records || data.data || []);
-  //       setTotal(data.total || 0);
-  //       setError("");
-  //     })
-  //     .catch(() => {
-  //       setReports([]);
-  //       setTotal(0);
-  //       setError("Failed to load reports.");
-  //     })
-  //     .finally(() => setLoading(false));
-  // }, [fromDate, toDate, limit, offset]);
 
   // Update the isDateInRange function:
   const isDateInRange = (callDate: string) => {
@@ -420,25 +312,6 @@ export function ReportsList() {
       setSortConfig({ key: "created_at", direction: "desc" });
     }
   };
-
-  // Clear all filters
-  // const clearAllFilters = () => {
-  //   setColumnFilters({
-  //     call_date: "",
-  //     caller_name: "",
-  //     request_type: "",
-  //     toll_free_did: "",
-  //     customer_number: "",
-  //     call_type: "",
-  //     filename: ""
-  //     // caller_sentiment: "",
-  //   });
-  //   setSearchQuery("");
-  //   setFromDate("");
-  //   setToDate("");
-  //   setCurrentPage(1);
-  //   setOffset(0);
-  // };
 
   const clearDaterangeFilters = () => {
     setFromDate("");
@@ -684,8 +557,6 @@ export function ReportsList() {
   const filteredReports = useMemo(() => {
     return sortedReports.filter((report: any) => {
       // Global search filter
-      // const matchesGlobalSearch =
-      //   report.caller_name?.toLowerCase().includes(searchQuery.toLowerCase())
       const matchesGlobalSearch =
         !searchQuery ||
         (report.caller_name &&
@@ -713,15 +584,6 @@ export function ReportsList() {
           report.call_type
             .toLowerCase()
             .includes(columnFilters.call_type.toLowerCase()));
-      // const matchesRequestType =
-      //   !columnFilters.request_type ||
-      //   report.request_type?.toLowerCase().includes(columnFilters.request_type.toLowerCase())
-
-      // const matchesTollFreeDid =
-      //   !columnFilters.toll_free_did
-
-      // const matchesCustomerNumber =
-      //   !columnFilters.customer_number
 
       const matchesTollFreeDid =
         !columnFilters.toll_free_did ||
@@ -755,30 +617,6 @@ export function ReportsList() {
     });
   }, [sortedReports, searchQuery, columnFilters, fromDate, toDate]);
 
-  // Function to determine sentiment color
-  // const getSentimentColor = (sentiment: any) => {
-  //   if (!sentiment) return "gray"
-
-  //   const lowerSentiment = sentiment.toLowerCase()
-  //   if (lowerSentiment.includes("happy") || lowerSentiment.includes("positive")) {
-  //     return "green"
-  //   } else if (lowerSentiment.includes("neutral")) {
-  //     return "blue"
-  //   } else if (
-  //     lowerSentiment.includes("angry") ||
-  //     lowerSentiment.includes("negative") ||
-  //     lowerSentiment.includes("sad")
-  //   ) {
-  //     return "red"
-  //   } else {
-  //     return "gray"
-  //   }
-  // }
-
-  // Get current reports for pagination
-  // const indexOfLastReport = currentPage * reportsPerPage
-  // const indexOfFirstReport = indexOfLastReport - reportsPerPage
-  // const currentReports = filteredReports.slice(indexOfFirstReport, indexOfLastReport)
 
   const currentReports = filteredReports; // filteredReports is just the current page now
   // Calculate the correct indices for the current page
@@ -1014,17 +852,6 @@ useEffect(() => {
 
                         />
                       </TableHead>
-                      {/* <TableHead className="font-semibold min-w-[150px]">
-                        <ColumnHeader
-                          column="call_type"
-                          icon={<ArrowRightLeft className="h-4 w-4" />}
-                          label="In/External"
-                          columnFilters={columnFilters}
-                          columnSorts={columnSorts}
-                          handleColumnFilterChange={handleColumnFilterChange}
-                          handleColumnSort={handleColumnSort}
-                        />
-                      </TableHead> */}
                       <TableHead className="font-semibold min-w-[150px]">
                         <ColumnHeader
                           column="call_type"
@@ -1036,40 +863,6 @@ useEffect(() => {
                           columnSorts={columnSorts}
                           handleColumnSort={handleColumnSort}
                         /></TableHead>
-                      {/* <TableHead className="font-semibold min-w-[180px]">
-                        <ColumnHeader
-                          column="caller_name"
-                          icon={<UserRound className="h-4 w-4" />}
-                          label="Caller Name"
-                          inputValues={inputValues}
-                          handleInputChange={handleInputChange}
-                          handleCommitFilter={handleCommitFilter}
-                          columnSorts={columnSorts}
-                          handleColumnSort={handleColumnSort}
-                        />
-                      </TableHead>
-                      <TableHead className="font-semibold min-w-[150px]">
-                        <ColumnHeader
-                          column="toll_free_did"
-                          icon={<Headset className="h-4 w-4" />}
-                          label="Toll Free/DID"
-                          columnFilters={columnFilters}
-                          columnSorts={columnSorts}
-                          handleColumnFilterChange={handleColumnFilterChange}
-                          handleColumnSort={handleColumnSort}
-                        />
-                      </TableHead>
-                      <TableHead className="font-semibold min-w-[170px]">
-                        <ColumnHeader
-                          column="customer_number"
-                          icon={<Phone className="h-4 w-4" />}
-                          label="Customer Number"
-                          columnFilters={columnFilters}
-                          columnSorts={columnSorts}
-                          handleColumnFilterChange={handleColumnFilterChange}
-                          handleColumnSort={handleColumnSort}
-                        />
-                      </TableHead> */}
                       <TableHead className="font-semibold min-w-[180px]">
                         <ColumnHeader
                           column="caller_name"
