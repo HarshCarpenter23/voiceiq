@@ -92,7 +92,7 @@ const ColumnHeader = ({
         {icon}
         <span>{label}</span>
       </div>
-      <Button
+      {/* <Button
         variant="ghost"
         size="icon"
         className="h-4 w-4 p-0 hover:bg-gray-200 dark:hover:bg-gray-700"
@@ -105,7 +105,7 @@ const ColumnHeader = ({
         ) : (
           <ArrowUpDown className="h-3 w-3" />
         )}
-      </Button>
+      </Button> */}
     </div>
     {showSearch &&
       (label.toLowerCase().includes("date") ? (
@@ -158,7 +158,7 @@ const ColumnHeader = ({
   </div>
 );
 
-export async function fetchReportSearch({ call_date_from, call_date_to, limit = 20, offset = 0 }) {
+export async function fetchDateFilter({ call_date_from, call_date_to, limit = 20, offset = 0 }) {
   const response = await fetch(`${BASE_URL}/logs/datefilter`, {
     method: "POST",
     headers: {
@@ -336,14 +336,13 @@ export function ReportsList() {
     if (!fromDate || !toDate) return;
 
     setLoading(true);
-    fetchReportSearch({
+    fetchDateFilter({
       call_date_from: fromDate,
       call_date_to: toDate,
       limit,
       offset,
     })
       .then((data) => {
-        console.log("API response:", data);
         setReports(data.records || data.data || []);
         setTotal(data.total || 0);
         setError("");
@@ -414,49 +413,11 @@ export function ReportsList() {
 
     setColumnSorts(resetSorts);
 
-    // Update main sort config and trigger API only if sorting is active
+    // Update main sort config
     if (newSort) {
       setSortConfig({ key: column, direction: newSort });
-
-      // Only trigger API for sorting, not for clearing sort
-      fetchReportSearching({
-        filters: columnFilters,
-        sort: { column, direction: newSort },
-        limit,
-        offset,
-      })
-        .then((data) => {
-          setReports(data.data || []);
-          setTotal(data.total || 0);
-          setError("");
-        })
-        .catch(() => {
-          setReports([]);
-          setTotal(0);
-          setError("Failed to load reports.");
-        })
-        .finally(() => setLoading(false));
     } else {
       setSortConfig({ key: "created_at", direction: "desc" });
-
-      // Optionally, fetch default sort
-      fetchReportSearching({
-        filters: columnFilters,
-        sort: { column: "created_at", direction: "desc" },
-        limit,
-        offset,
-      })
-        .then((data) => {
-          setReports(data.data || []);
-          setTotal(data.total || 0);
-          setError("");
-        })
-        .catch(() => {
-          setReports([]);
-          setTotal(0);
-          setError("Failed to load reports.");
-        })
-        .finally(() => setLoading(false));
     }
   };
 
@@ -838,6 +799,12 @@ export function ReportsList() {
     : { column: "created_at", direction: "desc" };
 
   useEffect(() => {
+    // Only run date range API if BOTH dates are set
+    if ((fromDate && !toDate) || (!fromDate && toDate)) {
+      // If only one date is set, do nothing
+      return;
+    }
+
     const hasAnyFilter = Object.values(columnFilters).some((v) => v);
     const hasDateRange = fromDate && toDate;
 
@@ -845,7 +812,7 @@ export function ReportsList() {
 
     if (hasDateRange) {
       // Always use the date range API when date range is set
-      fetchReportSearch({
+      fetchDateFilter({
         call_date_from: fromDate,
         call_date_to: toDate,
         limit,
@@ -862,8 +829,9 @@ export function ReportsList() {
           setError("Failed to load reports.");
         })
         .finally(() => setLoading(false));
+      return;
     } else if (hasAnyFilter) {
-      // Use searching API for other filters
+      // Use searching API for other filters and sorting
       fetchReportSearching({
         filters,
         sort,
@@ -897,7 +865,7 @@ export function ReportsList() {
         })
         .finally(() => setLoading(false));
     }
-  }, [columnFilters, fromDate, toDate, limit, offset]);
+  }, [columnFilters, columnSorts, fromDate, toDate, limit, offset]);
   return (
     <div className="relative overflow-hidden">
       {/* Decorative blobs */}
