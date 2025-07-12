@@ -1,1 +1,1 @@
-export const BASE_URL = "https://vq-2.indominuslabs.in";
+export const BASE_URL = "https://voiceiq-db.indominuslabs.in";
