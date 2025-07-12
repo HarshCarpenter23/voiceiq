@@ -331,29 +331,29 @@ export function ReportsList() {
 
 
   // Fetch when BOTH fromDate and toDate are set
-  useEffect(() => {
-    // Only run if BOTH dates are set
-    if (!fromDate || !toDate) return;
+  // useEffect(() => {
+  //   // Only run if BOTH dates are set
+  //   if (!fromDate || !toDate) return;
 
-    setLoading(true);
-    fetchDateFilter({
-      call_date_from: fromDate,
-      call_date_to: toDate,
-      limit,
-      offset,
-    })
-      .then((data) => {
-        setReports(data.records || data.data || []);
-        setTotal(data.total || 0);
-        setError("");
-      })
-      .catch(() => {
-        setReports([]);
-        setTotal(0);
-        setError("Failed to load reports.");
-      })
-      .finally(() => setLoading(false));
-  }, [fromDate, toDate, limit, offset]);
+  //   setLoading(true);
+  //   fetchDateFilter({
+  //     call_date_from: fromDate,
+  //     call_date_to: toDate,
+  //     limit,
+  //     offset,
+  //   })
+  //     .then((data) => {
+  //       setReports(data.records || data.data || []);
+  //       setTotal(data.total || 0);
+  //       setError("");
+  //     })
+  //     .catch(() => {
+  //       setReports([]);
+  //       setTotal(0);
+  //       setError("Failed to load reports.");
+  //     })
+  //     .finally(() => setLoading(false));
+  // }, [fromDate, toDate, limit, offset]);
 
   // Update the isDateInRange function:
   const isDateInRange = (callDate: string) => {
@@ -798,74 +798,75 @@ export function ReportsList() {
     ? { column: sortColumn, direction: columnSorts[sortColumn] }
     : { column: "created_at", direction: "desc" };
 
-  useEffect(() => {
-    // Only run date range API if BOTH dates are set
-    if ((fromDate && !toDate) || (!fromDate && toDate)) {
-      // If only one date is set, do nothing
-      return;
-    }
+useEffect(() => {
+  // Only run date range API if BOTH dates are set
+  if ((fromDate && !toDate) || (!fromDate && toDate)) {
+    // If only one date is set, do nothing
+    return;
+  }
 
-    const hasAnyFilter = Object.values(columnFilters).some((v) => v);
-    const hasDateRange = fromDate && toDate;
+  const hasAnyFilter = Object.values(columnFilters).some((v) => v);
+  const hasDateRange = fromDate && toDate;
 
-    setLoading(true);
+  setLoading(true);
 
-    if (hasDateRange) {
-      // Always use the date range API when date range is set
-      fetchDateFilter({
-        call_date_from: fromDate,
-        call_date_to: toDate,
-        limit,
-        offset,
+  if (hasDateRange) {
+    // Always use the date range API when date range is set
+    fetchDateFilter({
+      call_date_from: fromDate,
+      call_date_to: toDate,
+      limit,
+      offset,
+    })
+      .then((data) => {
+        setReports(data.records || data.data || []);
+        setTotal(data.total || 0);
+        setError("");
       })
-        .then((data) => {
-          setReports(data.records || data.data || []);
-          setTotal(data.total || 0);
-          setError("");
-        })
-        .catch(() => {
-          setReports([]);
-          setTotal(0);
-          setError("Failed to load reports.");
-        })
-        .finally(() => setLoading(false));
-      return;
-    } else if (hasAnyFilter) {
-      // Use searching API for other filters and sorting
-      fetchReportSearching({
-        filters,
-        sort,
-        limit,
-        offset,
+      .catch(() => {
+        setReports([]);
+        setTotal(0);
+        setError("Failed to load reports.");
       })
-        .then((data) => {
-          setReports(data.data || []);
-          setTotal(data.total || 0);
-          setError("");
-        })
-        .catch(() => {
-          setReports([]);
-          setTotal(0);
-          setError("Failed to load reports.");
-        })
-        .finally(() => setLoading(false));
-    } else {
-      // Default: show all
-      fetch(`${BASE_URL}/logs/all?limit=${limit}&offset=${offset}`)
-        .then((res) => res.json())
-        .then((data) => {
-          setReports(data.data || []);
-          setTotal(data.total || 0);
-          setError("");
-        })
-        .catch(() => {
-          setReports([]);
-          setTotal(0);
-          setError("Failed to load reports.");
-        })
-        .finally(() => setLoading(false));
-    }
-  }, [columnFilters, columnSorts, fromDate, toDate, limit, offset]);
+      .finally(() => setLoading(false));
+    return;
+  } else if (hasAnyFilter) {
+    // Use searching API for other filters and sorting
+    fetchReportSearching({
+      filters,
+      sort,
+      limit,
+      offset,
+    })
+      .then((data) => {
+        setReports(data.data || []);
+        setTotal(data.total || 0);
+        setError("");
+      })
+      .catch(() => {
+        setReports([]);
+        setTotal(0);
+        setError("Failed to load reports.");
+      })
+      .finally(() => setLoading(false));
+  } else {
+    // Default: show all
+    fetch(`${BASE_URL}/logs/all?limit=${limit}&offset=${offset}`)
+      .then((res) => res.json())
+      .then((data) => {
+        setReports(data.data || []);
+        setTotal(data.total || 0);
+        setError("");
+      })
+      .catch(() => {
+        setReports([]);
+        setTotal(0);
+        setError("Failed to load reports.");
+      })
+      .finally(() => setLoading(false));
+  }
+}, [columnFilters, columnSorts, fromDate, toDate, limit, offset]);
+
   return (
     <div className="relative overflow-hidden">
       {/* Decorative blobs */}
