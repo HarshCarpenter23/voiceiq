@@ -105,11 +105,6 @@ const ColumnHeader = ({
               ...prev,
               call_date: columnFilters.call_date || "",
             }));
-            console.log(inputValues.call_date);
-
-          }}
-          onKeyDown={e => {
-            console.log(inputValues);
           }}
           className="h-7 text-xs bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600"
         />
@@ -352,7 +347,7 @@ export function ReportsList() {
 
       return { title, mdxSource };
     } catch (error) {
-      console.error("Error parsing markdown with MDX:", error);
+
       return { title, mdxSource: null };
     }
   };
@@ -532,7 +527,7 @@ export function ReportsList() {
     // Here you would call your API with the latest filters
     // Example:
     // fetchReports(columnFilters);
-    console.log("Trigger API/search with filters:", columnFilters);
+
   }, [columnFilters]);
 
   // Apply sorting
